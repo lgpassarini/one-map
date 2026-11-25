@@ -1,0 +1,16 @@
+:root {
+  --sea-deep: #0b2a3d;
+  --text: #f1ece0;
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--sea-deep);
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}

@@ -1,0 +1,44 @@
+{
+  "pixels": {
+    "width": 4096,
+    "height": 2085
+  },
+  "world": {
+    "width": 400,
+    "height": 203.61328125
+  },
+  "coast": {
+    "width": 4096,
+    "height": 2085,
+    "maxPx": 64,
+    "pxPerUnit": 10.24
+  },
+  "cutX": 0,
+  "mesh": {
+    "vertices": 326376,
+    "colorBytes": 979128,
+    "lineVertices": 73468
+  },
+  "reverseMountain": {
+    "px": [
+      2022,
+      1058
+    ],
+    "peak": 15.1
+  },
+  "falls": 5,
+  "bands": {
+    "calmBeltNorth": [
+      0.384,
+      0.42
+    ],
+    "grandLine": [
+      0.42,
+      0.584
+    ],
+    "calmBeltSouth": [
+      0.584,
+      0.62
+    ]
+  }
+}

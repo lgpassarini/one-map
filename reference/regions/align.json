@@ -1,0 +1,38 @@
+{
+  "north-blue": {
+    "scale": 0.922,
+    "tx": 384,
+    "ty": 50,
+    "score": 0.387
+  },
+  "east-blue": {
+    "scale": 0.95,
+    "tx": 2256,
+    "ty": 66,
+    "score": 0.631
+  },
+  "west-blue": {
+    "scale": 0.729,
+    "tx": 176,
+    "ty": 1374,
+    "score": 0.433
+  },
+  "south-blue": {
+    "scale": 1.0025,
+    "tx": 2130,
+    "ty": 1232,
+    "score": 0.498
+  },
+  "new-world": {
+    "scale": 1.1155,
+    "tx": 82,
+    "ty": 812,
+    "score": 0.418
+  },
+  "paradise": {
+    "scale": 1.0895,
+    "tx": 2166,
+    "ty": 828,
+    "score": 0.464
+  }
+}
