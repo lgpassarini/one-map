@@ -17,7 +17,7 @@ import sharp from 'sharp'
 import { contours } from 'd3-contour'
 import { readFile, writeFile } from 'node:fs/promises'
 import { close, components, dilate, fillHoles, removeSmall } from './lib/raster.mjs'
-import { printChannels, rasterPolys } from './lib/regions.mjs'
+import { printChannels, printTransforms, rasterPolys } from './lib/regions.mjs'
 
 const geo = JSON.parse(await readFile('geo/geography.extracted.json', 'utf8'))
 const W = geo.width, H = geo.height
@@ -27,22 +27,15 @@ const GL = [Math.round(geo.bands.grandLine[0] * H), Math.round(geo.bands.grandLi
 const CALM_N = Math.round(geo.bands.calmBeltNorth[0] * H)
 const CALM_S = Math.round(geo.bands.calmBeltSouth[1] * H)
 
-// Transformação print → mapa: X = sx*px + tx, Y = sy*py + ty. box = área de mar da região.
-const uniform = (a) => ({ sx: a.scale, sy: a.scale, tx: a.tx, ty: a.ty })
-// Faixas: quadro medido no print (Calm Belts em y; da Red Line/Twin Cape até Sabaody/Lodestar em x)
-// e no nosso mapa (Grand Line em y; bordas da Red Line na latitude da Grand Line em x).
-function frame(print, ours) {
-  const sx = (ours.x1 - ours.x0) / (print.x1 - print.x0)
-  const sy = (ours.y1 - ours.y0) / (print.y1 - print.y0)
-  return { sx, sy, tx: ours.x0 - print.x0 * sx, ty: ours.y0 - print.y0 * sy }
-}
+// Transformação print → mapa (T) e área de mar (box) de cada região.
+const T = printTransforms(geo, align)
 const REGIONS = {
-  'north-blue': { T: uniform(align['north-blue']), box: [0, 0, 2048, CALM_N] },
-  'east-blue': { T: uniform(align['east-blue']), box: [2048, 0, W, CALM_N] },
-  'west-blue': { T: uniform(align['west-blue']), box: [0, CALM_S, 2048, H] },
-  'south-blue': { T: uniform(align['south-blue']), box: [2048, CALM_S, W, H] },
-  paradise: { T: frame({ x0: 0, x1: 1999, y0: 48, y1: 352 }, { x0: 2262, x1: 3925, y0: GL[0], y1: GL[1] }), box: [2048, GL[0], W, GL[1]] },
-  'new-world': { T: frame({ x0: 0, x1: 1998, y0: 58, y1: 365 }, { x0: 140, x1: 1890, y0: GL[0], y1: GL[1] }), box: [0, GL[0], 2048, GL[1]] },
+  'north-blue': { T: T['north-blue'], box: [0, 0, 2048, CALM_N] },
+  'east-blue': { T: T['east-blue'], box: [2048, 0, W, CALM_N] },
+  'west-blue': { T: T['west-blue'], box: [0, CALM_S, 2048, H] },
+  'south-blue': { T: T['south-blue'], box: [2048, CALM_S, W, H] },
+  paradise: { T: T.paradise, box: [2048, GL[0], W, GL[1]] },
+  'new-world': { T: T['new-world'], box: [0, GL[0], 2048, GL[1]] },
 }
 
 const land = await rasterPolys(geo.land, W, H)

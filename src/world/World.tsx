@@ -1,14 +1,16 @@
 import { Suspense } from 'react'
+import route from '../data/route.json'
 import type { Quality } from '../quality'
 import { CameraRig } from './CameraRig'
 import { Canals } from './Canals'
-import { mapPxToWorld, refPxToWorld } from './coords'
+import { mapPxToWorld } from './coords'
 import { EdgeFog } from './EdgeFog'
 import { Ocean } from './Ocean'
+import { Ship } from './Ship'
 import { Terrain } from './Terrain'
 
-// Vila Foosha (pixel na referência original), ponto de partida enquanto não há episódio selecionado.
-const FOOSHA = refPxToWorld(3588, 363)
+// Vila Foosha: ponto de partida enquanto não há episódio selecionado.
+const FOOSHA = route.places.foosha.port as [number, number]
 
 // Dev: ?at=px,py&dist=n posiciona a câmera num pixel do mapa.
 function startView(): { at: [number, number]; dist: number } {
@@ -35,6 +37,7 @@ export function World({ quality }: { quality: Quality }) {
         <Canals />
         <Ocean quality={quality} />
       </Suspense>
+      <Ship />
       <EdgeFog />
       <CameraRig start={START.at} distance={START.dist} />
     </>

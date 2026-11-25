@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "geo:extract": "node scripts/extract-geography.mjs --debug && node scripts/merge-regions.mjs",
     "geo:align": "node scripts/align-regions.mjs",
-    "geo:terrain": "node scripts/build-terrain.mjs"
+    "geo:terrain": "node scripts/build-terrain.mjs && node scripts/build-route.mjs",
+    "geo:route": "node scripts/build-route.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

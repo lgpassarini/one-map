@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { cameraState } from '../world/cameraState'
+import { shipState } from '../world/shipState'
 import { WORLD_H, WORLD_W } from '../world/coords'
 import './Minimap.css'
 
@@ -56,6 +57,16 @@ export function Minimap() {
         ctx.strokeStyle = '#ffffff'
         ctx.strokeRect(x, y, hw * 2 * s, hh * 2 * s)
       }
+
+      // Navio: ponto com borda escura.
+      const [sx, sz] = shipState.pos
+      ctx.beginPath()
+      ctx.arc((sx + WORLD_W / 2) * s, (sz + WORLD_H / 2) * s, 3.5 * dpr, 0, Math.PI * 2)
+      ctx.fillStyle = '#ffd34d'
+      ctx.fill()
+      ctx.lineWidth = 1.5 * dpr
+      ctx.strokeStyle = '#3b2a20'
+      ctx.stroke()
     }
     draw()
     return () => cancelAnimationFrame(raf)

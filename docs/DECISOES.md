@@ -67,14 +67,19 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
   mas cada ilha cresce só 1,25× em volta do próprio centro (`ISLAND_SCALE`). O resultado é muito
   mais mar entre as ilhas, como nos outros mapas de referência. Por isso um local dentro de uma
   ilha usa a transformação da ilha (`src/data/islands.json`, `mapPxToWorld`).
+- **Piso de tamanho:** ilhas pequenas crescem até ~4 unidades (o navio parado tem ~2,2), no máximo
+  3×, e param antes de encostar numa vizinha ou na Red Line. Ganham relevo como se fossem desse
+  tamanho. A escala de cada ilha fica em `islands.json` (`s`).
 - **Reverse Mountain é um pico pontudo em platôs, não um cânion nem um cone liso:** usa o mesmo
   sistema de degraus e a mesma família de cor da Red Line, clareando até o pico, com contorno
   irregular. Quatro canais sobem dos quatro mares por gargantas entre paredões (a água sobe em
   degraus, animada) até o topo, e um desce para a Grand Line em 5 cachoeiras. Os canais são
   gerados de forma procedural (retos e simétricos), porque na referência o braço NE estava
   tapado pela rota pontilhada.
-- **Rota:** traçada a partir da referência (vermelho antes do timeskip, amarelo depois) e
-  guardada como curva própria.
+- **Rota:** gerada por script (`scripts/build-route.mjs`), não traçada à mão. Os locais ficam em
+  `geo/places.json` (pixel no print da região, feito à mão); o porto é o ponto de mar mais perto
+  com folga da costa, e entre portos um A* pela distância até a costa evita chegar a menos de ~0,7
+  unidade e prefere mar aberto (~3). O app passa uma curva suave pelos pontos.
 - **Unidade do mapa = local, não arco.** Um arco pode passar por vários locais, e um local
   (Water 7, Sabaody) pode ser revisitado.
 - Em arcos em que o bando está sem o navio (Impel Down, Marineford), o navio fica parado e o
@@ -88,6 +93,16 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
 - As ilhas detalhadas são adicionadas uma de cada vez. Ilhas sem detalhe mostram só o painel.
 
 ## Navios
+- **Visual igual ao do terreno:** o navio é montado com camadas extrudadas (topo claro, parede
+  0,72× mais escura), toon shading de 3 tons e contorno fino na cor das linhas das ilhas. Um bote
+  "liso" com contorno grosso destoava do mapa.
+- **Animação:** acelera no primeiro ~30% da viagem, navega constante e freia no fim (3–7 s);
+  virada, tamanho e "modo navegando" amortecidos; balança com ondas calculadas sob proa, popa e
+  lados (o mar continua plano), inclina nas curvas; bandeirinha tremulando.
+- **Rastro, não efeitos de vento/espuma:** testamos esteira em V, ondinhas e espuma na proa e
+  descartamos. Fica só um rastro que segue o caminho do barco desde a popa, no estilo da costa
+  (miolo em água rasa, bordas de espuma recortada), que alarga, afina na ponta e some em ~4 s.
+- **Porto:** a 2,1 unidades da costa, para o navio parado (e girando) não encostar na praia.
 - Muda conforme o episódio: bote a remo, depois o Going Merry (de Syrup Village até o fim de
   Enies Lobby), depois o Thousand Sunny.
 - Travessias especiais (Reverse Mountain, Knock Up Stream, descida até a Ilha dos Tritões)
