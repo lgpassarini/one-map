@@ -106,9 +106,7 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
 - **Rastro, não efeitos de vento/espuma:** testamos esteira em V, ondinhas e espuma na proa e
   descartamos. Fica só um rastro que segue o caminho do barco desde a popa, no estilo da costa
   (miolo em água rasa, bordas de espuma recortada), que alarga, afina na ponta e some em ~4 s.
-- **Fora do mapa por enquanto (2026-11-25):** os navios ficam prontos no código, mas o mapa abre sem
-  navio até existir a troca por episódio; `?navios` mostra o protótipo em dev. Na bandeira e nos
-  símbolos (Jolly Roger, carneiro, leão, cúpulas) a fidelidade às referências importa; a estrutura
+- **Fidelidade:** na bandeira e nos símbolos (Jolly Roger, carneiro, leão, cúpulas) a fidelidade às referências importa; a estrutura
   do casco pode ser aproximada.
 - **Merry e Sunny feitos à mão, não baixados:** modelos do Sketchfab serviram só de referência
   visual (o processo e a geometria são nossos); um modelo marcado como NoAI foi descartado até como
@@ -128,8 +126,14 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
   dividem o porto (Reverse Mountain → Whisky Peak, Ilha dos Tritões → Maubeugemour). Um ponto de
   mar a menos de 8 unidades do porto anterior fica no porto (os de Whisky Peak, Alabasta e Punk
   Hazard). Nesses casos a perna é `stay` (um ponto só) e o navio não se move.
-- Muda conforme o episódio: bote a remo, depois o Going Merry (de Syrup Village até o fim de
-  Enies Lobby), depois o Thousand Sunny.
+- **Muda conforme o episódio (passo 5, 2026-11-26):** bote até o Ep 17, Going Merry do 18 ao 312
+  (o bando ganha o navio no fim do 17), Thousand Sunny a partir do 313 (o Merry se vai no 312; o
+  Sunny só aparece no 321, mas entre um e outro o bando não tem navio próprio). Parado, troca no
+  lugar com um "pop" (encolhe e volta com um pulinho); numa viagem, troca ao passar pela parada da
+  troca (Syrup Village, Water 7), para o lado para onde vai. O protótipo `?navios` saiu.
+- **Câmera nas viagens longas:** além de ~50 unidades de viagem, a câmera se afasta (0,12 de
+  distância por unidade, até +110 e o zoom máximo), fica afastada no meio e volta à distância de
+  antes perto do destino; a inclinação acompanha o zoom.
 - Travessias especiais (Reverse Mountain, Knock Up Stream, descida até a Ilha dos Tritões)
   ficam **para depois**. Na v1 são trechos normais da rota.
 

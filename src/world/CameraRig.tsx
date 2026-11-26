@@ -7,7 +7,7 @@ import { cameraState } from './cameraState'
 import { WORLD_H, WORLD_W } from './coords'
 
 const MIN_DIST = 40 // aproximação máxima: enquadramento tipo "Reverse Mountain inteira, de lado"
-const MAX_DIST = 173 // afastado o bastante para ver boa parte do mapa
+export const MAX_DIST = 173 // afastado o bastante para ver boa parte do mapa
 
 // Inclinação acompanha o zoom: perto, a câmera fica deitada (vê as ilhas de lado);
 // longe, quase de cima, como um mapa. Ângulo polar: 0 = de cima, π/2 = horizonte.

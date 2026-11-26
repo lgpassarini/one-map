@@ -6,33 +6,17 @@ import { mapPxToWorld } from './coords'
 import { EdgeFog } from './EdgeFog'
 import { Ocean } from './Ocean'
 import { PlaceLabelsProjector } from './PlaceLabels'
-import { type Course, courseStart, Ship, voyageStart } from './Ship'
-import type { ShipModelId } from './shipModels'
+import { Ship, voyageStart } from './Ship'
 import { Terrain } from './Terrain'
 
-// O navio do bando fica na parada do episódio atual e viaja quando outro é escolhido na barra.
-// Dev: ?navios troca pelo protótipo abaixo.
-const SHOW_SHIPS = new URLSearchParams(window.location.search).has('navios')
-
-// Protótipo: um navio em cada mar. O bote faz a rota do East Blue; o Merry e o Sunny dão voltas
-// em mar aberto (pontos com ~7 unidades livres de ilhas, achados no coast.png) no North e no
-// South Blue. ?seguir=bote|merry|sunny escolhe em qual a câmera começa e qual ela acompanha.
-const COURSES: Record<ShipModelId, Course> = {
-  bote: 'rota',
-  merry: { center: [-98, -45], rx: 7, rz: 4.9 },
-  sunny: { center: [102, 57], rx: 7, rz: 4.9 },
-}
-const SHIPS = Object.keys(COURSES) as ShipModelId[]
-const seguir = new URLSearchParams(window.location.search).get('seguir')
-const LEAD: ShipModelId = SHIPS.find((id) => id === seguir) ?? 'bote'
-
-// Dev: ?at=px,py&dist=n posiciona a câmera num pixel do mapa.
+// A câmera começa no navio (na parada do episódio salvo). Dev: ?at=px,py&dist=n posiciona a
+// câmera num pixel do mapa.
 function startView(): { at: [number, number]; dist: number } {
   const p = new URLSearchParams(window.location.search)
   const at = p.get('at')?.split(',').map(Number)
   const dist = Number(p.get('dist')) || 50
   if (at?.length === 2) return { at: mapPxToWorld(at[0], at[1]), dist }
-  return { at: SHOW_SHIPS ? courseStart(COURSES[LEAD]) : voyageStart(), dist }
+  return { at: voyageStart(), dist }
 }
 const START = startView()
 
@@ -52,11 +36,8 @@ export function World({ quality }: { quality: Quality }) {
         <Canals />
         <Ocean quality={quality} />
       </Suspense>
-      {SHOW_SHIPS ? (
-        SHIPS.map((id) => <Ship key={id} model={id} lead={id === LEAD} course={COURSES[id]} />)
-      ) : (
-        <Ship course="viagem" />
-      )}
+      {/* O navio do bando: fica na parada do episódio atual e viaja quando outro é escolhido. */}
+      <Ship />
       <EdgeFog />
       <CameraRig start={START.at} distance={START.dist} />
       {/* depois da câmera: os nomes usam a posição dela deste frame (antes, ficavam um frame atrás) */}

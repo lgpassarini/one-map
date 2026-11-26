@@ -56,10 +56,8 @@ Resumo; a lista completa e o porquê estão em [DECISOES.md](DECISOES.md).
 ## Onde estamos
 
 Versão 1 (tag `v1.0.0`) + navios prontos. Bote, Going Merry e Thousand Sunny estão modelados
-(bandeira, Jolly Roger, carneiro, leão e cúpulas conferidos com as referências do usuário); no mapa
-normal só o bote aparece, viajando até o episódio escolhido (passo 4), e a troca por episódio é o
-passo 5. Dev: `?navios` mostra o protótipo (bote na rota inteira, de Foosha a Elbaf; Merry e Sunny
-dando voltas no North e no South Blue; `?seguir=bote|merry|sunny`).
+(bandeira, Jolly Roger, carneiro, leão e cúpulas conferidos com as referências do usuário) e no
+mapa o navio do episódio viaja até o episódio escolhido.
 
 **Dados de episódios prontos (passo 1, aprovado pelo usuário em 26/11/2026):** `npm run eps:fetch` baixa opguide.app, onepace.net e a
 One Piece Wiki para `.cache/episodes/`; `npm run eps:build` cruza tudo em `src/data/episodes.json`
@@ -81,8 +79,7 @@ paradas (uma por trecho de episódios no mesmo local; os trechos no mar param no
 ou no porto quando o meio fica colado na ilha) e 51 pernas pelo mar. Paradas coladas dividem o
 porto, para o navio não dar voltinhas em torno da mesma ilha. A perna para a Reverse Mountain sobe pelo canal do East Blue e desce pelas
 cachoeiras (pontos com altura); a de Sabaody para a Ilha dos Tritões mergulha por baixo da Red
-Line na borda leste e sai na oeste (`jump`). O `?navios` agora faz a rota inteira, mas os navios
-seguem fora do mapa normal até a troca por episódio. Na revisão com o usuário, a chegada ficou
+Line na borda leste e sai na oeste (`jump`). Na revisão com o usuário, a chegada ficou
 sem giro: o navio parado (agora 2,7 unidades) fica como chegou, vira no lugar uma vez, devagar,
 para sair, e navegando a proa mira 1,5 unidade à frente no caminho (aprovado em 26/11/2026).
 
@@ -95,6 +92,12 @@ acompanhando. Exportar/importar arquivo saiu do plano. Na revisão, a barra viro
 madeira pendurada por cordas no topo da tela (só `Arco · Ep N` e as tags; balança de leve ao trocar
 de episódio; 60% de opacidade sem uso), e a lista ganhou moldura de madeira e rolagem no tema.
 
+**Navio navegando (passo 5, 26/11/2026, em revisão):** o navio muda conforme o episódio (bote até
+o 17, Merry do 18 ao 312, Sunny a partir do 313; `shipModels.tsx`). Parado, troca no lugar com um
+"pop"; numa viagem, troca ao passar por Syrup Village ou Water 7. Nas viagens longas a câmera se
+afasta no caminho e volta a aproximar no destino. O protótipo `?navios` (e `?shipt`) saiu; o
+`Ship.tsx` agora só tem o navio do bando.
+
 | Área | Estado |
 | --- | --- |
 | Mapa 3D | Pronto |
@@ -103,7 +106,7 @@ de episódio; 60% de opacidade sem uso), e a lista ganhou moldura de madeira e r
 | Qualidade móvel | Detecção automática; não testado num tablet real |
 | Pipeline de geografia | Pronto (`scripts/`). Em 26/11 entraram as ilhas de neve (Drum, Balloon Terminal, Baltigo), as do Calm Belt (Amazon Lily, Impel Down) e Loguetown (caía fora da área do East Blue); ilhas cortadas por rótulos foram consertadas (`FIX_LABELS` em `merge-regions.mjs`: Dressrosa, Alabasta, Wano, Water 7, Loguetown, Conomi...) |
 | Rota do navio | Pronta: 52 paradas na ordem dos episódios, com as travessias da Reverse Mountain e da Ilha dos Tritões (`scripts/build-route.mjs` → `src/data/route.json`; conferência com `node scripts/route-overlay.mjs`) |
-| Navio | Modelos prontos: bote, Going Merry e Thousand Sunny feitos em código no estilo do terreno (`Ship.tsx`, `merryModel.ts`, `sunnyModel.ts`, peças e Jolly Roger em `shipParts.ts`); acelera/freia, balança nas ondas, encolhe navegando, deixa rastro (`Trail.ts`). No mapa, o bote viaja até o episódio escolhido; a troca bote → Merry → Sunny é o passo 5 (`?navios` mostra o protótipo dos três) |
+| Navio | Em revisão: bote, Going Merry e Thousand Sunny feitos em código no estilo do terreno (`Ship.tsx`, `merryModel.ts`, `sunnyModel.ts`, peças e Jolly Roger em `shipParts.ts`); viaja até o episódio escolhido, troca de navio conforme o episódio (`shipModels.tsx`), acelera/freia, balança nas ondas, encolhe navegando, deixa rastro (`Trail.ts`); a câmera se afasta nas viagens longas |
 | Barra de episódios | Pronta: placa de madeira pendurada (`EpisodeBar.tsx`) + estado do episódio (`state/episode.ts`) |
 | Dados de episódios | Pronto e aprovado: `src/data/episodes.json` (`scripts/fetch-episodes.mjs`, `scripts/build-episodes.mjs`, locais em `geo/episode-places.json`) |
 | Nomes no mapa | Os 42 locais com nome no 3D, no estilo dos rótulos dos prints (Alegreya negrito via @fontsource, letra escura com contorno branco, X de mapa do tesouro, anticolisão; `PlaceLabels.tsx`; tecla N liga/desliga, salvo em `mapSettings.ts`); posições em `geo/places.json`, conferência com `node scripts/places-overlay.mjs` |
@@ -117,7 +120,8 @@ de episódio; 60% de opacidade sem uso), e a lista ganhou moldura de madeira e r
 - **Ilhas minúsculas** (< 8 px no print) seguem pequenas: o crescimento tem teto de 3×; 88 ilhas
   ficam abaixo de 4 unidades porque encostariam numa vizinha ou na Red Line.
 - **Screenshots do dev server** às vezes vêm com módulos velhos do cache; conferir mudanças pelo
-  build (`vite preview`). Animações: usar `?shipt=s`, que simula os 3 s anteriores.
+  build (`vite preview`). Animações: o Edge headless pode ser dirigido pelo protocolo de depuração
+  (clicar na placa, digitar na busca e fotografar no meio da viagem).
 - **Grand Line em baixa resolução:** prints com ilhas de 20–60 px e rótulos; Skypiea não entrou.
 - **Encaixe das faixas da Grand Line** medido a olho; erro possível de alguns % na horizontal.
 - **Margens vazias** perto da Red Line onde o mapa dos prints é mais estreito.
@@ -131,7 +135,7 @@ de episódio; 60% de opacidade sem uso), e a lista ganhou moldura de madeira e r
   geral juntaria ilhas separadas por um rótulo no estreito (Ilha Rubeck, Reino de Lvneel).
 - Screenshots headless mostram faixa escura na borda (artefato do Edge headless).
 - **Navio nos canais e no mergulho** não foi conferido no 3D (o Edge headless não carregou a cena
-  perto do topo da Reverse Mountain); conferir no navegador com `?navios&shipt=40`. Skypiea é uma
+  perto do topo da Reverse Mountain); conferir no navegador com `?ep=61` e escolhendo o 62. Skypiea é uma
   parada no mar sob a nuvem, sem subida ao céu.
 - **Locais fora dos prints** ficam em posição aproximada: Reverse Mountain (pelo xads181), as 12
   ilhas de filler (em ilhas sem nome ou no mar entre as ilhas da viagem) e Skypiea (na nuvem do
@@ -149,8 +153,8 @@ Plano fechado em 26/11/2026 (detalhes em DECISOES.md, "Dados de episódios e loc
    com as duas travessias.
 4. ~~**Interface**~~ — feito (26/11/2026): placa `< Arco · Ep >`, lista de episódios, progresso
    salvo, navio viajando até o episódio escolhido. Exportar/importar foi descartado.
-5. **Navio navegando (próximo):** troca bote → Merry → Sunny conforme o episódio (tirar o `?navios` e o
-   protótipo de voltas do `World.tsx`); zoom da câmera em viagens longas.
+5. **Navio navegando (em revisão):** troca bote → Merry → Sunny conforme o episódio (sem o
+   protótipo `?navios`); câmera se afasta em viagens longas.
 6. **Zoom da ilha** com animação e painel, começando por 1 ilha do East Blue.
 7. Depois: sinopses e dropdown de idioma (tradução PT), modelos das ilhas de filler e dos locais
    especiais, nomes das outras ilhas dos prints (opção B: ~200 nomes, com anticolisão por zoom),
@@ -166,5 +170,4 @@ Em aberto com o usuário: prints da Grand Line mais aproximados (3–4 por faixa
 - Stack: Vite + React + TypeScript + React Three Fiber + drei; scripts Node (sharp, d3-contour)
 - Rodar: `npm install`, `npm run dev`; mapa: `npm run geo:extract` → `npm run geo:terrain` (já roda
   a rota; só a rota: `npm run geo:route`) (`npm run geo:align` antes, se trocar um print);
-  dev: `?quality=low|high`, `?at=x,y&dist=n`, `?navios` (mostra os navios), `?shipt=s` (adianta a
-  animação do navio); rota: `node scripts/route-overlay.mjs` (imagem em `reference/_debug/`); episódios: `npm run eps:fetch` (baixa as fontes) → `npm run eps:build`
+  dev: `?quality=low|high`, `?at=x,y&dist=n`, `?ep=N` (escolhe e salva o episódio); rota: `node scripts/route-overlay.mjs` (imagem em `reference/_debug/`); episódios: `npm run eps:fetch` (baixa as fontes) → `npm run eps:build`
