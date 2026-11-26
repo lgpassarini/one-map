@@ -128,25 +128,13 @@
 .ep-bar__title {
   position: relative;
   min-width: 400px;
-  padding: 4px 26px 5px;
+  padding: 9px 26px 10px;
   border-radius: 8px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1px;
+  justify-content: center;
+  gap: 10px;
   transition: background 0.12s;
-}
-
-/* Pregos nos cantos de baixo (em cima ficam as argolas das cordas). */
-.ep-bar__title::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  --nail: radial-gradient(circle, #e8c98e 0 1.5px, #7a5a3a 2px 3px, #2a170a 3.5px 4px, transparent 4.5px);
-  background:
-    var(--nail) left 3px bottom 3px / 10px 10px no-repeat,
-    var(--nail) right 3px bottom 3px / 10px 10px no-repeat;
 }
 
 .ep-bar__title:not(:disabled):hover {
@@ -166,34 +154,26 @@
 }
 
 .ep-bar__dot {
+  margin: 0 0.45em;
   color: #ffbf5e;
 }
 
-.ep-bar__caret {
-  margin-left: 8px;
-  font-size: 14px;
-  vertical-align: 2px;
-  -webkit-text-stroke-width: 4px;
-}
-
-.ep-bar__sub {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--cream-soft);
-  text-shadow: 0 1px 1px rgba(30, 15, 5, 0.8);
-  white-space: nowrap;
-}
-
-/* Viajando: a barra fica travada (apagada) e o subtítulo diz "Navegando…". */
+/* Viajando: a barra fica travada (texto apagado, setas desligadas). */
 .ep-bar--locked .ep-bar__main {
   opacity: 0.6;
 }
 
-.ep-bar--locked .ep-bar__sub {
-  color: #ffcf73;
+/* Sem uso, a placa fica meio transparente (como o minimapa); volta inteira com o mouse em cima,
+   com foco no teclado ou com a lista aberta. */
+.ep-bar {
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.ep-bar:hover,
+.ep-bar:focus-within,
+.ep-bar--open {
+  opacity: 1;
 }
 
 /* Tags Filler e Recap: na madeira, claras; no pergaminho, escuras. */

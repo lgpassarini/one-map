@@ -52,7 +52,7 @@ export function EpisodeBar() {
     if (!el || episode === firstEp.current) return
     firstEp.current = -1
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const deg = [0, 1.6, -1.1, 0.6, -0.25, 0]
+    const deg = [0, 0.9, -0.6, 0.3, -0.12, 0]
     const at = [0, 0.15, 0.38, 0.6, 0.8, 1]
     el.animate(
       deg.map((d, i) => ({ transform: `rotate(${d}deg)`, offset: at[i] })),
@@ -75,7 +75,7 @@ export function EpisodeBar() {
 
   return (
     <div className="ep-bar-wrap">
-      <div ref={bar} className={`ep-bar${sailing ? ' ep-bar--locked' : ''}`}>
+      <div ref={bar} className={`ep-bar${sailing ? ' ep-bar--locked' : ''}${open ? ' ep-bar--open' : ''}`}>
         <button
           className="ep-bar__arrow"
           onClick={() => go(episode - 1)}
@@ -94,25 +94,15 @@ export function EpisodeBar() {
           <span className="ep-bar__main">
             {ep ? (
               <>
-                {arcName(ep.arc)} <span className="ep-bar__dot">·</span> Ep {ep.n}
+                {arcName(ep.arc)}
+                <span className="ep-bar__dot">·</span>
+                Ep {ep.n}
               </>
             ) : (
               'Partida'
             )}
-            <span className="ep-bar__caret" aria-hidden>
-              ▾
-            </span>
           </span>
-          <span className="ep-bar__sub">
-            {sailing ? (
-              'Navegando…'
-            ) : (
-              <>
-                {ep ? placeName(ep.place) : 'Vila Foosha'}
-                <Tags ep={ep} />
-              </>
-            )}
-          </span>
+          <Tags ep={ep} />
         </button>
         <button
           className="ep-bar__arrow"
