@@ -1,12 +1,25 @@
-/* Barra de episódios no topo, no estilo dos rótulos do mapa: papel claro, tinta quase preta,
-   contorno marrom grosso e sombra chapada (cartoon). */
+/* Barra de episódios no topo, com cara de placa de madeira de navio pirata: tábua com veios,
+   pregos nos cantos, letra creme com contorno escuro (como os rótulos do mapa, invertidos) e
+   sombra chapada (cartoon). A lista abre numa moldura de madeira com o miolo de pergaminho. */
 .ep-bar-wrap {
-  --paper: #fbf3df;
-  --paper-dark: #efe1bf;
+  --wood: #94603a;
+  --wood-light: #a8743f;
+  --wood-dark: #6e4426;
+  --wood-edge: #3b2414;
+  --cream: #fff1d2;
+  --cream-soft: #f0d6a2;
+  --paper: #f8ecd0;
+  --paper-dark: #ead6ab;
   --ink: #2a1a0e;
   --ink-soft: #6b4a30;
-  --edge: #4a2f1c;
   --accent: #9b1c1c;
+  /* Veios da madeira: linhas finas horizontais + listras largas mais claras + degradê da tábua. */
+  --grain:
+    repeating-linear-gradient(178.5deg, rgba(40, 20, 8, 0.13) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(181deg, rgba(255, 225, 170, 0.07) 0 3px, transparent 3px 17px),
+    radial-gradient(ellipse 34px 7px at 72% 62%, rgba(50, 25, 10, 0.28), transparent 70%),
+    radial-gradient(ellipse 22px 5px at 24% 30%, rgba(50, 25, 10, 0.22), transparent 70%),
+    linear-gradient(180deg, var(--wood-light), var(--wood) 50%, var(--wood-dark));
   position: fixed;
   top: 14px;
   left: 50%;
@@ -16,7 +29,7 @@
   align-items: center;
   gap: 10px;
   z-index: 10;
-  color: var(--ink);
+  color: var(--cream);
   font-family: var(--sans);
 }
 
@@ -24,11 +37,15 @@
   display: flex;
   align-items: stretch;
   gap: 6px;
-  padding: 5px;
-  background: var(--paper);
-  border: 2.5px solid var(--edge);
-  border-radius: 14px;
-  box-shadow: 0 4px 0 var(--edge), 0 8px 18px rgba(0, 0, 0, 0.3);
+  padding: 6px;
+  background: var(--grain);
+  border: 3px solid var(--wood-edge);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 160, 0.25),
+    inset 0 -3px 0 rgba(30, 15, 5, 0.3),
+    0 5px 0 var(--wood-edge),
+    0 10px 20px rgba(0, 0, 0, 0.35);
 }
 
 .ep-bar button {
@@ -43,25 +60,32 @@
   cursor: default;
 }
 
+/* Setas: botões de madeira escura, afundados na tábua. */
 .ep-bar__arrow {
-  width: 40px;
-  border-radius: 10px;
+  width: 46px;
+  border-radius: 9px;
   display: grid;
   place-items: center;
-  background: var(--paper-dark) !important;
-  transition: background 0.12s, transform 0.08s;
+  background: linear-gradient(180deg, #5c381e, #4a2c16) !important;
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 220, 160, 0.2);
+  transition: filter 0.12s, transform 0.08s;
+}
+
+.ep-bar__arrow svg {
+  width: 18px;
+  height: 18px;
 }
 
 .ep-bar__arrow svg path {
   fill: none;
-  stroke: var(--ink);
-  stroke-width: 2.6;
+  stroke: var(--cream);
+  stroke-width: 2.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .ep-bar__arrow:not(:disabled):hover {
-  background: #e6d2a4 !important;
+  filter: brightness(1.25);
 }
 
 .ep-bar__arrow:not(:disabled):active {
@@ -69,13 +93,14 @@
 }
 
 .ep-bar__arrow:disabled svg path {
-  stroke: #c4ad86;
+  stroke: #8a6a4c;
 }
 
 .ep-bar__title {
-  min-width: 260px;
-  padding: 3px 14px 4px;
-  border-radius: 10px;
+  position: relative;
+  min-width: 400px;
+  padding: 4px 26px 5px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -83,50 +108,68 @@
   transition: background 0.12s;
 }
 
+/* Pregos nos quatro cantos da placa. */
+.ep-bar__title::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --nail: radial-gradient(circle, #e8c98e 0 1.5px, #7a5a3a 2px 3px, #2a170a 3.5px 4px, transparent 4.5px);
+  background:
+    var(--nail) left 3px top 3px / 10px 10px no-repeat,
+    var(--nail) right 3px top 3px / 10px 10px no-repeat,
+    var(--nail) left 3px bottom 3px / 10px 10px no-repeat,
+    var(--nail) right 3px bottom 3px / 10px 10px no-repeat;
+}
+
 .ep-bar__title:not(:disabled):hover {
-  background: var(--paper-dark);
+  background: rgba(255, 225, 170, 0.1);
 }
 
 .ep-bar__main {
   font-family: 'Alegreya', Georgia, serif;
   font-weight: 800;
-  font-size: 21px;
+  font-size: 23px;
   line-height: 1.15;
   white-space: nowrap;
+  color: var(--cream);
+  -webkit-text-stroke: 5px var(--wood-edge);
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 var(--wood-edge);
 }
 
 .ep-bar__dot {
-  color: var(--accent);
+  color: #ffbf5e;
 }
 
 .ep-bar__caret {
-  margin-left: 7px;
-  font-size: 13px;
-  color: var(--ink-soft);
+  margin-left: 8px;
+  font-size: 14px;
   vertical-align: 2px;
+  -webkit-text-stroke-width: 4px;
 }
 
 .ep-bar__sub {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-size: 13px;
-  color: var(--ink-soft);
+  font-weight: 600;
+  color: var(--cream-soft);
+  text-shadow: 0 1px 1px rgba(30, 15, 5, 0.8);
   white-space: nowrap;
 }
 
 /* Viajando: a barra fica travada (apagada) e o subtítulo diz "Navegando…". */
-.ep-bar--locked .ep-bar__main,
-.ep-bar--locked .ep-bar__caret {
-  opacity: 0.55;
+.ep-bar--locked .ep-bar__main {
+  opacity: 0.6;
 }
 
 .ep-bar--locked .ep-bar__sub {
-  color: var(--accent);
-  font-weight: 600;
+  color: #ffcf73;
 }
 
-/* Tags Filler e Recap. */
+/* Tags Filler e Recap: na madeira, claras; no pergaminho, escuras. */
 .ep-tag {
   padding: 0 6px;
   border-radius: 6px;
@@ -135,51 +178,112 @@
   line-height: 17px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  text-shadow: none;
   border: 1.5px solid currentColor;
   flex: none;
 }
 
-.ep-tag--filler {
+.ep-bar .ep-tag {
+  background: rgba(30, 15, 5, 0.35);
+}
+
+.ep-bar .ep-tag--filler {
+  color: #ffb768;
+}
+
+.ep-bar .ep-tag--recap {
+  color: #a8d8f0;
+}
+
+.ep-list .ep-tag--filler {
   color: #b5651d;
 }
 
-.ep-tag--recap {
+.ep-list .ep-tag--recap {
   color: #3d6f8f;
 }
 
-/* Lista de episódios. */
+/* Lista de episódios: moldura de madeira, miolo de pergaminho. */
 .ep-list {
-  width: min(480px, 94vw);
-  max-height: min(66vh, 640px);
+  width: min(580px, 94vw);
+  max-height: min(68vh, 660px);
   display: flex;
   flex-direction: column;
-  background: var(--paper);
-  border: 2.5px solid var(--edge);
-  border-radius: 14px;
-  box-shadow: 0 4px 0 var(--edge), 0 10px 24px rgba(0, 0, 0, 0.35);
+  gap: 8px;
+  padding: 9px;
+  background: var(--grain);
+  border: 3px solid var(--wood-edge);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 160, 0.25),
+    0 5px 0 var(--wood-edge),
+    0 12px 26px rgba(0, 0, 0, 0.4);
+  color: var(--ink);
   overflow: hidden;
 }
 
 .ep-list__search {
-  margin: 10px;
-  padding: 8px 12px;
+  padding: 9px 13px;
   font: inherit;
   font-size: 15px;
   color: var(--ink);
-  background: #fffaf0;
-  border: 2px solid var(--paper-dark);
-  border-radius: 9px;
+  background: var(--paper);
+  border: 2px solid var(--wood-edge);
+  border-radius: 8px;
+  box-shadow: inset 0 2px 3px rgba(60, 35, 15, 0.25);
   outline: none;
 }
 
+.ep-list__search::placeholder {
+  color: #9a7b5a;
+}
+
 .ep-list__search:focus {
-  border-color: var(--ink-soft);
+  border-color: #ffbf5e;
 }
 
 .ep-list__scroll {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 0 6px 8px;
+  padding: 0 4px 8px 6px;
   overscroll-behavior: contain;
+  background: var(--paper);
+  border: 2px solid var(--wood-edge);
+  border-radius: 8px;
+  box-shadow: inset 0 3px 6px rgba(60, 35, 15, 0.22);
+}
+
+/* Barra de rolagem no tema: trilho de pergaminho, cursor de madeira. */
+.ep-list__scroll::-webkit-scrollbar {
+  width: 12px;
+}
+
+.ep-list__scroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 6px 0;
+}
+
+.ep-list__scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, var(--wood-light), var(--wood-dark));
+  border: 3px solid var(--paper);
+  border-radius: 8px;
+  min-height: 48px;
+}
+
+.ep-list__scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #b8824a, var(--wood));
+}
+
+.ep-list__scroll::-webkit-scrollbar-button {
+  display: none;
+}
+
+@supports (-moz-appearance: none) {
+  .ep-list__scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--wood) transparent;
+  }
 }
 
 .ep-group__head {
@@ -190,15 +294,16 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 8px 4px;
+  margin: 0 -4px 0 -6px;
+  padding: 9px 12px 5px;
   background: var(--paper);
-  border-bottom: 1.5px solid var(--paper-dark);
+  border-bottom: 2px solid #d9bd8c;
 }
 
 .ep-group__arc {
   font-family: 'Alegreya', Georgia, serif;
   font-weight: 800;
-  font-size: 17px;
+  font-size: 18px;
 }
 
 .ep-group__meta {
@@ -219,7 +324,7 @@
   color: var(--ink);
   background: none;
   border: none;
-  border-radius: 8px;
+  border-radius: 7px;
   cursor: pointer;
 }
 
@@ -229,7 +334,7 @@
 
 .ep-row__n {
   flex: none;
-  width: 38px;
+  width: 40px;
   text-align: right;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -252,11 +357,11 @@
 
 .ep-row--current .ep-row__n,
 .ep-row--current .ep-tag {
-  color: #fffaf0;
+  color: #fffaf0 !important;
 }
 
 .ep-row--start {
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .ep-list__empty {
@@ -271,12 +376,12 @@
   }
   .ep-bar__title {
     min-width: 0;
-    padding: 2px 8px 3px;
+    padding: 3px 14px 4px;
   }
   .ep-bar__main {
-    font-size: 17px;
+    font-size: 18px;
   }
   .ep-bar__arrow {
-    width: 34px;
+    width: 36px;
   }
 }
