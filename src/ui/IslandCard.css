@@ -1,0 +1,318 @@
+@import './wood.css';
+
+/* Vinheta da vista da ilha: moldura de madeira com miolo de pergaminho, no canto superior
+   esquerdo. Entra deslizando quando a câmera chega na vista da ilha e sai quando ela deixa. */
+.island-card {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 9;
+  width: 330px;
+  max-height: calc(100vh - 36px - 230px); /* acima do minimapa */
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  background: var(--grain);
+  border: 3px solid var(--wood-edge);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 160, 0.25),
+    0 5px 0 var(--wood-edge),
+    0 10px 22px rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  font-family: var(--sans);
+  /* Escondida: um pouco para a esquerda e transparente. */
+  opacity: 0;
+  transform: translateX(-24px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.island-card--visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+/* Miolo de pergaminho: tudo dentro de um só painel claro. */
+.island-card > * {
+  background: var(--paper);
+}
+
+.island-card__head {
+  padding: 10px 14px 8px;
+  border-radius: 8px 8px 0 0;
+  border: 2px solid var(--wood-edge);
+  border-bottom: none;
+}
+
+.island-card__name {
+  margin: 0;
+  font-family: 'Alegreya', Georgia, serif;
+  font-weight: 800;
+  font-size: 25px;
+  line-height: 1.1;
+}
+
+.island-card__region {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.island-card__now,
+.island-card__section,
+.island-card__start {
+  margin: 0;
+  padding: 9px 14px;
+  border-left: 2px solid var(--wood-edge);
+  border-right: 2px solid var(--wood-edge);
+  border-top: 2px solid #d9bd8c;
+}
+
+/* O último bloco fecha o pergaminho embaixo. */
+.island-card > :last-child {
+  border-bottom: 2px solid var(--wood-edge);
+  border-radius: 0 0 8px 8px;
+  padding-bottom: 11px;
+}
+
+.island-card__start {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.island-card__now-n {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Alegreya', Georgia, serif;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--accent);
+}
+
+.island-card__now-title {
+  margin: 1px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.island-card__now-meta {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* Botão do One Pace: madeira escura com letra creme, como as setas da placa. */
+.island-card__onepace {
+  margin-top: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #5c381e, #4a2c16);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.2), 0 2px 0 var(--wood-edge);
+  color: var(--cream);
+  text-decoration: none;
+  transition: filter 0.12s, transform 0.08s;
+}
+
+.island-card__onepace:hover {
+  filter: brightness(1.2);
+}
+
+.island-card__onepace:active {
+  transform: translateY(1px);
+}
+
+.island-card__onepace-label {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.island-card__onepace-label::after {
+  content: ' ↗';
+  color: #ffbf5e;
+}
+
+.island-card__onepace-title {
+  font-size: 12px;
+  color: var(--cream-soft);
+}
+
+.island-card__no-onepace {
+  margin: 9px 0 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1.5px dashed #c9a877;
+  font-size: 13px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.island-card__label {
+  margin: 0 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.island-card__arcs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.island-card__arcs li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.island-card__arc-name {
+  font-family: 'Alegreya', Georgia, serif;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.island-card__arc-meta {
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* Lista dos episódios da parada: rola dentro da vinheta. */
+.island-card__section--list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.island-card__eps {
+  margin: 0 -6px;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  max-height: 210px;
+  overscroll-behavior: contain;
+}
+
+.island-card__eps::-webkit-scrollbar {
+  width: 10px;
+}
+
+.island-card__eps::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, var(--wood-light), var(--wood-dark));
+  border: 3px solid var(--paper);
+  border-radius: 8px;
+  min-height: 36px;
+}
+
+.island-card__eps::-webkit-scrollbar-button {
+  display: none;
+}
+
+@supports (-moz-appearance: none) {
+  .island-card__eps {
+    scrollbar-width: thin;
+    scrollbar-color: var(--wood) transparent;
+  }
+}
+
+.island-card__ep {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.island-card__ep:hover {
+  background: var(--paper-dark);
+}
+
+.island-card__ep-n {
+  flex: none;
+  width: 32px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.island-card__ep-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.island-card__ep--current {
+  background: var(--accent) !important;
+  color: #fffaf0;
+}
+
+.island-card__ep--current .island-card__ep-n,
+.island-card__ep--current .ep-tag {
+  color: #fffaf0 !important;
+}
+
+/* Tags (as mesmas da lista de episódios). */
+.island-card .ep-tag {
+  padding: 0 5px;
+  border-radius: 5px;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1.5px solid currentColor;
+  flex: none;
+}
+
+.island-card .ep-tag--filler {
+  color: #b5651d;
+}
+
+.island-card .ep-tag--recap {
+  color: #3d6f8f;
+}
+
+/* Telas estreitas: a placa ocupa o topo, então a vinheta vira uma gaveta embaixo. */
+@media (max-width: 1100px) {
+  .island-card {
+    top: auto;
+    bottom: 12px;
+    left: 50%;
+    width: min(420px, calc(100vw - 24px));
+    max-height: 46vh;
+    transform: translate(-50%, 24px);
+  }
+  .island-card--visible {
+    transform: translate(-50%, 0);
+  }
+}

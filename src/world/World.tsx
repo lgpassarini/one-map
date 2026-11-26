@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import type { Quality } from '../quality'
-import { CameraRig } from './CameraRig'
+import { CameraRig, ISLAND_DIST } from './CameraRig'
 import { Canals } from './Canals'
 import { mapPxToWorld } from './coords'
 import { EdgeFog } from './EdgeFog'
@@ -9,14 +9,14 @@ import { PlaceLabelsProjector } from './PlaceLabels'
 import { Ship, voyageStart } from './Ship'
 import { Terrain } from './Terrain'
 
-// A câmera começa no navio (na parada do episódio salvo). Dev: ?at=px,py&dist=n posiciona a
-// câmera num pixel do mapa.
-function startView(): { at: [number, number]; dist: number } {
+// A câmera começa na vista da ilha da parada do episódio salvo. Dev: ?at=px,py&dist=n posiciona a
+// câmera num pixel do mapa (fora da vista da ilha).
+function startView(): { at: [number, number]; dist: number; island: boolean } {
   const p = new URLSearchParams(window.location.search)
   const at = p.get('at')?.split(',').map(Number)
   const dist = Number(p.get('dist')) || 50
-  if (at?.length === 2) return { at: mapPxToWorld(at[0], at[1]), dist }
-  return { at: voyageStart(), dist }
+  if (at?.length === 2) return { at: mapPxToWorld(at[0], at[1]), dist, island: false }
+  return { at: voyageStart(), dist: ISLAND_DIST, island: true }
 }
 const START = startView()
 
@@ -39,7 +39,7 @@ export function World({ quality }: { quality: Quality }) {
       {/* O navio do bando: fica na parada do episódio atual e viaja quando outro é escolhido. */}
       <Ship />
       <EdgeFog />
-      <CameraRig start={START.at} distance={START.dist} />
+      <CameraRig start={START.at} distance={START.dist} island={START.island} />
       {/* depois da câmera: os nomes usam a posição dela deste frame (antes, ficavam um frame atrás) */}
       <PlaceLabelsProjector />
     </>

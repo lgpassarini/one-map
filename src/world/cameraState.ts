@@ -7,8 +7,8 @@ export const cameraState = {
   half: [0, 0] as [number, number],
   /** performance.now() da última vez que a câmera se mexeu. */
   lastMove: 0,
-  /** Pedido da interface (âncora): levar a câmera até o navio, no zoom e rumo iniciais. */
-  flyToShip: false,
-  /** A câmera já está no navio (centralizada, zoom inicial, rumo norte) ou indo para lá: a âncora não faz nada. */
-  atShip: false,
+  /** Pedido (âncora, chegada do navio): levar a câmera à vista da ilha. */
+  flyToIsland: false,
+  /** A câmera está na vista da ilha (ou indo para ela): a vinheta do local aparece e a âncora não faz nada. */
+  islandView: false,
 }

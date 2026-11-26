@@ -49,6 +49,7 @@ const CAM_CATCH = 2.5 // na viagem, a câmera alcança o navio (se a vista estav
 const ZOOM_FROM = 50
 const ZOOM_PER = 0.12
 const ZOOM_MAX = 110
+const FOCUS_MAX = 4 // vista da ilha: quanto o enquadramento se desloca do porto para a cidade, no máximo
 const POP = 0.16 // s de cada metade do "pop" da troca de navio (encolher, crescer)
 
 type Pt = number[] // [x, z] ou [x, z, y]
@@ -206,11 +207,22 @@ function stopPort(stop: number): THREE.Vector3 {
   return v
 }
 
-/** Onde o navio começa: o porto da parada do episódio salvo (para posicionar a câmera). */
-export function voyageStart(): [number, number] {
-  const p = stopPort(stopOf(episodeStore.get().episode))
-  return [p.x, p.z]
+/**
+ * Ponto da vista da ilha de uma parada: do porto em direção à cidade do local (no meio do caminho,
+ * no máximo FOCUS_MAX unidades), para enquadrar o navio e a ilha; numa parada no mar, o porto.
+ */
+export function stopFocus(stop: number): [number, number] {
+  const p = stopPort(stop)
+  const place = route.stops[stop].place as keyof typeof route.places | null
+  const town = place ? route.places[place].town : null
+  if (!town) return [p.x, p.z]
+  const dx = town[0] - p.x, dz = town[1] - p.z
+  const k = Math.min(0.5, FOCUS_MAX / Math.max(Math.hypot(dx, dz), 1e-6))
+  return [p.x + dx * k, p.z + dz * k]
 }
+
+/** Onde a câmera começa: a vista da ilha da parada do episódio salvo. */
+export const voyageStart = () => stopFocus(stopOf(episodeStore.get().episode))
 
 /** Posição (0..1) ao longo da viagem: acelera, navega em velocidade constante e freia. */
 function travel(t: number) {
@@ -384,6 +396,8 @@ export function Ship() {
       s.ep = s.toEp
       s.voyage = null
       episodeStore.setSailing(false)
+      shipState.focus = stopFocus(s.at)
+      cameraState.flyToIsland = true // ao chegar, a câmera vai para a vista da ilha
     }
     const v = s.voyage
     const trips = v?.trips ?? null
@@ -506,6 +520,7 @@ export function Ship() {
     shipState.pos = [tmp.p.x, tmp.p.z]
     shipState.visible = true
     shipState.sailing = sailing
+    if (!v) shipState.focus = stopFocus(s.at)
   }
 
   useFrame((state, rawDt) => {

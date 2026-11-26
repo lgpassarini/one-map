@@ -40,26 +40,41 @@ function publishCameraState(camera: THREE.PerspectiveCamera, target: THREE.Vecto
 const MARGIN_X = 22
 const MARGIN_Z = 18
 
-const FLY_TIME = 1.1 // s da animação "ir até o navio"
-const HOME_DIST = 50 // zoom para onde a âncora leva (o mesmo de quando a página abre)
+// Vista da ilha: com o navio parado, a câmera chega mais perto do que o zoom normal (MIN_DIST),
+// enquadrando o navio e a ilha, e a interface mostra a vinheta com as informações do local. Entra
+// sozinha ao chegar numa parada (e ao abrir a página); a âncora traz de volta. Sai quando o usuário
+// afasta o zoom ou leva a vista para longe da ilha.
+export const ISLAND_DIST = 24 // distância da câmera na vista da ilha
+const ISLAND_MIN = 16 // aproximação máxima dentro da vista da ilha
+const ISLAND_LEAVE_PAN = 5 // sai da vista se o alvo se afastar isto do ponto da ilha...
+const ISLAND_LEAVE_ZOOM = 10 // ...ou o zoom passar isto além da distância da vista
+const FLY_TIME = 1.1 // s da animação até a vista da ilha
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(b - a), Math.cos(b - a))
+
+type CameraRigProps = {
+  start: [number, number]
+  distance?: number
+  /** Começa já na vista da ilha (ao abrir a página no navio). */
+  island?: boolean
+}
 
 /**
  * Câmera de mapa: arrastar move, roda/pinça dá zoom (e a inclinação acompanha), botão direito gira.
  * O alvo fica preso dentro do mapa; quanto mais afastado, mais perto do centro ele precisa ficar.
  */
-export function CameraRig({ start, distance = 50 }: { start: [number, number]; distance?: number }) {
+export function CameraRig({ start, distance = 50, island = false }: CameraRigProps) {
   const controls = useRef<MapControlsImpl>(null)
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const scene = useThree((s) => s.scene)
   const size = useThree((s) => s.size)
-  // "Ir até o navio" em andamento: de onde a câmera saiu e para onde vai.
+  // Ida até a vista da ilha em andamento: de onde a câmera saiu e para onde vai.
   const fly = useRef<{ k: number; x: number; z: number; d: number; az: number; tx: number; tz: number } | null>(null)
-  // Onde a câmera parou depois de ir até o navio (perto da borda do mapa o alvo não centraliza de
-  // todo, então "no navio" também vale enquanto a câmera não sai deste ponto).
-  const landed = useRef(false)
-  const home = useRef<THREE.Vector3 | null>(null)
+  // Na vista da ilha: o ponto e a distância em que ela começou (para saber quando o usuário saiu).
+  const view = useRef<{ x: number; z: number; d: number } | null>(island ? { x: start[0], z: start[1], d: distance } : null)
+  // A vista acabou de começar: no fim do quadro ela é ancorada onde a câmera ficou (perto da borda
+  // do mapa o alvo não centraliza de todo).
+  const fresh = useRef(island)
 
   useEffect(() => {
     const c = controls.current
@@ -73,22 +88,25 @@ export function CameraRig({ start, distance = 50 }: { start: [number, number]; d
   useFrame((_, dt) => {
     const c = controls.current
     if (!c) return
+    const sailing = episodeStore.get().sailing
     // Viajando, a câmera fica travada no navio (o Ship.tsx a conduz): arrastar, zoom e giro param.
-    c.enabled = !episodeStore.get().sailing && !fly.current
+    c.enabled = !sailing && !fly.current
+    if (sailing) view.current = null
 
-    // Âncora: vai até o navio, centraliza, volta ao zoom inicial e desfaz o giro (rumo norte).
-    // Pedido ignorado se já está no navio ou indo para lá.
-    const request = cameraState.flyToShip
-    cameraState.flyToShip = false
-    if (request && !cameraState.atShip && !fly.current) {
+    // Ir até a vista da ilha (ao chegar ou pela âncora): centraliza no ponto da ilha, aproxima e
+    // desfaz o giro (norte para cima). Ignorado se já está nela ou indo para lá.
+    const request = cameraState.flyToIsland
+    cameraState.flyToIsland = false
+    if (request && !sailing && !view.current && !fly.current) {
       const off = camera.position.clone().sub(c.target)
-      fly.current = { k: 0, x: c.target.x, z: c.target.z, d: off.length(), az: Math.atan2(off.x, off.z), tx: shipState.pos[0], tz: shipState.pos[1] }
+      const [tx, tz] = shipState.focus
+      fly.current = { k: 0, x: c.target.x, z: c.target.z, d: off.length(), az: Math.atan2(off.x, off.z), tx, tz }
     }
     const f = fly.current
     if (f) {
       f.k = Math.min(1, f.k + Math.min(dt, 0.1) / FLY_TIME)
       const e = easeInOut(f.k)
-      const d = THREE.MathUtils.lerp(f.d, HOME_DIST, e)
+      const d = THREE.MathUtils.lerp(f.d, ISLAND_DIST, e)
       const az = f.az + angleDiff(f.az, 0) * e
       const polar = polarFor(d)
       c.target.set(THREE.MathUtils.lerp(f.x, f.tx, e), 0, THREE.MathUtils.lerp(f.z, f.tz, e))
@@ -99,12 +117,21 @@ export function CameraRig({ start, distance = 50 }: { start: [number, number]; d
       )
       if (f.k >= 1) {
         fly.current = null
-        landed.current = true
+        view.current = { x: c.target.x, z: c.target.z, d: ISLAND_DIST }
+        fresh.current = true
       }
     }
 
     const t = c.target
     const dist = camera.position.distanceTo(t)
+
+    // Saiu da vista da ilha? (levou a vista para longe ou afastou o zoom)
+    const v = view.current
+    if (v && !fresh.current && (Math.hypot(t.x - v.x, t.z - v.z) > ISLAND_LEAVE_PAN || dist > v.d + ISLAND_LEAVE_ZOOM)) view.current = null
+    // Aproximação máxima: na vista da ilha, ISLAND_MIN; fora dela, MIN_DIST, mas sem pular quando a
+    // câmera saiu da vista ainda perto (o mínimo acompanha até ela passar de MIN_DIST).
+    c.minDistance = view.current || fly.current ? ISLAND_MIN : Math.min(MIN_DIST, Math.max(dist, ISLAND_MIN))
+    cameraState.islandView = view.current !== null || fly.current !== null
 
     // Trava o ângulo polar no valor do zoom atual (o giro em volta continua livre).
     const polar = polarFor(dist)
@@ -124,22 +151,15 @@ export function CameraRig({ start, distance = 50 }: { start: [number, number]; d
       camera.position.x += dx
       camera.position.z += dz
     }
+    if (fresh.current) {
+      fresh.current = false
+      if (view.current) {
+        view.current.x = t.x
+        view.current.z = t.z
+      }
+    }
 
     publishCameraState(camera, t, halfW, halfH)
-
-    // Já está no navio? (a âncora fica inativa): indo para lá, parada onde a ida terminou, ou
-    // centralizada no navio no zoom inicial e com o norte para cima.
-    if (landed.current) {
-      landed.current = false
-      home.current = camera.position.clone()
-    }
-    if (home.current && camera.position.distanceToSquared(home.current) > 0.01) home.current = null
-    const az = Math.atan2(camera.position.x - t.x, camera.position.z - t.z)
-    const centered =
-      Math.hypot(t.x - shipState.pos[0], t.z - shipState.pos[1]) < 0.6 &&
-      Math.abs(dist - HOME_DIST) < 1 &&
-      Math.abs(angleDiff(az, 0)) < 0.03
-    cameraState.atShip = fly.current !== null || home.current !== null || centered
 
     // Neblina acompanha o zoom.
     if (scene.fog instanceof THREE.Fog) {
@@ -156,7 +176,7 @@ export function CameraRig({ start, distance = 50 }: { start: [number, number]; d
       makeDefault
       enableDamping
       dampingFactor={0.08}
-      minDistance={MIN_DIST}
+      minDistance={island ? ISLAND_MIN : MIN_DIST} // a vista da ilha começa mais perto que o zoom normal
       maxDistance={MAX_DIST}
       screenSpacePanning={false}
     />

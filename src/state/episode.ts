@@ -14,11 +14,17 @@ export type Episode = (typeof data.episodes)[number]
 export const EPISODES = data.episodes
 export const LAST_EP = EPISODES[EPISODES.length - 1].n
 const arcs = new Map(data.arcs.map((a) => [a.id, a]))
-const places = data.places as Record<string, { name: { pt: string; en: string } }>
+const places = data.places as Record<string, { name: { pt: string; en: string }; region: string }>
 
 export const episodeAt = (n: number): Episode | undefined => EPISODES[n - 1]
 export const arcName = (id: string) => arcs.get(id)?.name.en ?? id
 export const placeName = (id: string | null | undefined) => (id ? (places[id]?.name.pt ?? id) : 'Mar aberto')
+
+const REGION_NAME: Record<string, string> = { 'east-blue': 'East Blue', paradise: 'Grand Line · Paradise', 'new-world': 'Grand Line · Novo Mundo' }
+export const regionName = (place: string | null | undefined) => (place ? (REGION_NAME[places[place]?.region] ?? '') : '')
+
+export type Stop = (typeof route.stops)[number]
+export const STOPS = route.stops
 
 /** Parada da rota (índice em route.stops) do episódio `n`; o episódio 0 é Foosha (parada 0). */
 export function stopOf(n: number) {
