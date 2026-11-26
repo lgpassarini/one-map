@@ -23,7 +23,7 @@ acompanha o bando de ilha em ilha.
 | --- | --- |
 | Barra de episódios | `< Arco · Ep N >` no topo; setas avançam/voltam; clicar no nome abre a lista completa |
 | Animação | Navio segue a rota (ida ou volta); barra travada durante a viagem; ~2–3 s padrão, viagens longas aceleram até ~6–8 s, câmera se afasta |
-| Progresso | Episódio selecionado = onde você está; salvo no localStorage no início da animação; sync manual (exportar/importar, link `?ep=405`) |
+| Progresso | Episódio selecionado = onde você está; salvo no localStorage no início da animação; sync manual pelo link `?ep=405` |
 | Episódios | Base no anime; link do One Pace quando existe, senão aviso "ainda não tem no One Pace"; tags Filler e Recap |
 | Ilhas | Unidade do mapa = local (um arco pode passar por vários); ao chegar, zoom para a versão detalhada da ilha |
 | Navio | Bote → Going Merry → Thousand Sunny conforme o episódio; peça de tabuleiro parada, encolhe ao navegar |
@@ -55,11 +55,11 @@ Resumo; a lista completa e o porquê estão em [DECISOES.md](DECISOES.md).
 
 ## Onde estamos
 
-Versão 1 (tag `v1.0.0`) + navios prontos, mas **fora do mapa por enquanto**. Bote, Going Merry e
-Thousand Sunny estão modelados (bandeira, Jolly Roger, carneiro, leão e cúpulas conferidos com as
-referências do usuário) e o protótipo de navegação funciona, mas o mapa abre sem navio até existir a
-troca por episódio. Dev: `?navios` mostra o protótipo (bote na rota inteira, de Foosha a
-Elbaf; Merry e Sunny dando voltas no North e no South Blue; `?seguir=bote|merry|sunny`).
+Versão 1 (tag `v1.0.0`) + navios prontos. Bote, Going Merry e Thousand Sunny estão modelados
+(bandeira, Jolly Roger, carneiro, leão e cúpulas conferidos com as referências do usuário); no mapa
+normal só o bote aparece, viajando até o episódio escolhido (passo 4), e a troca por episódio é o
+passo 5. Dev: `?navios` mostra o protótipo (bote na rota inteira, de Foosha a Elbaf; Merry e Sunny
+dando voltas no North e no South Blue; `?seguir=bote|merry|sunny`).
 
 **Dados de episódios prontos (passo 1, aprovado pelo usuário em 26/11/2026):** `npm run eps:fetch` baixa opguide.app, onepace.net e a
 One Piece Wiki para `.cache/episodes/`; `npm run eps:build` cruza tudo em `src/data/episodes.json`
@@ -86,6 +86,13 @@ seguem fora do mapa normal até a troca por episódio. Na revisão com o usuári
 sem giro: o navio parado (agora 2,7 unidades) fica como chegou, vira no lugar uma vez, devagar,
 para sair, e navegando a proa mira 1,5 unidade à frente no caminho (aprovado em 26/11/2026).
 
+**Interface (passo 4, 26/11/2026, em revisão):** barra `< Arco · Ep N >` no topo
+(`src/ui/EpisodeBar.tsx`) com o local e as tags embaixo, setas e ← →, e lista de episódios por arco
+com busca. O episódio fica em `src/state/episode.ts` (localStorage, `?ep=N`; 0 = Partida em
+Foosha). O bote voltou ao mapa: fica na parada do episódio e, ao escolher outro, navega pela rota
+até lá (ida ou volta, direto pelas paradas do meio, 2,2–7 s), com a barra travada e a câmera
+acompanhando. Exportar/importar arquivo saiu do plano.
+
 | Área | Estado |
 | --- | --- |
 | Mapa 3D | Pronto |
@@ -94,7 +101,8 @@ para sair, e navegando a proa mira 1,5 unidade à frente no caminho (aprovado em
 | Qualidade móvel | Detecção automática; não testado num tablet real |
 | Pipeline de geografia | Pronto (`scripts/`). Em 26/11 entraram as ilhas de neve (Drum, Balloon Terminal, Baltigo), as do Calm Belt (Amazon Lily, Impel Down) e Loguetown (caía fora da área do East Blue); ilhas cortadas por rótulos foram consertadas (`FIX_LABELS` em `merge-regions.mjs`: Dressrosa, Alabasta, Wano, Water 7, Loguetown, Conomi...) |
 | Rota do navio | Pronta: 52 paradas na ordem dos episódios, com as travessias da Reverse Mountain e da Ilha dos Tritões (`scripts/build-route.mjs` → `src/data/route.json`; conferência com `node scripts/route-overlay.mjs`) |
-| Navio | Modelos prontos: bote, Going Merry e Thousand Sunny feitos em código no estilo do terreno (`Ship.tsx`, `merryModel.ts`, `sunnyModel.ts`, peças e Jolly Roger em `shipParts.ts`); acelera/freia, balança nas ondas, encolhe navegando, deixa rastro (`Trail.ts`). **Fora do mapa** (só com `?navios`) até a troca por episódio |
+| Navio | Modelos prontos: bote, Going Merry e Thousand Sunny feitos em código no estilo do terreno (`Ship.tsx`, `merryModel.ts`, `sunnyModel.ts`, peças e Jolly Roger em `shipParts.ts`); acelera/freia, balança nas ondas, encolhe navegando, deixa rastro (`Trail.ts`). No mapa, o bote viaja até o episódio escolhido; a troca bote → Merry → Sunny é o passo 5 (`?navios` mostra o protótipo dos três) |
+| Barra de episódios | Em revisão: `EpisodeBar.tsx` + `state/episode.ts` |
 | Dados de episódios | Pronto e aprovado: `src/data/episodes.json` (`scripts/fetch-episodes.mjs`, `scripts/build-episodes.mjs`, locais em `geo/episode-places.json`) |
 | Nomes no mapa | Os 42 locais com nome no 3D, no estilo dos rótulos dos prints (Alegreya negrito via @fontsource, letra escura com contorno branco, X de mapa do tesouro, anticolisão; `PlaceLabels.tsx`; tecla N liga/desliga, salvo em `mapSettings.ts`); posições em `geo/places.json`, conferência com `node scripts/places-overlay.mjs` |
 | Barra de episódios / lista | Não começado |
@@ -137,7 +145,8 @@ Plano fechado em 26/11/2026 (detalhes em DECISOES.md, "Dados de episódios e loc
    nomes no mapa; feito de uma vez para todas as sagas.
 3. ~~**Rota**~~ — feito (26/11/2026): 52 paradas pela ordem dos episódios, de Foosha a Elbaf,
    com as duas travessias.
-4. **Interface (próximo):** barra `< Arco · Ep >` e lista de episódios, progresso, exportar/importar.
+4. **Interface (em revisão):** barra `< Arco · Ep >` e lista de episódios, progresso salvo, navio
+   viajando até o episódio escolhido. Exportar/importar foi descartado.
 5. **Navio navegando:** troca bote → Merry → Sunny conforme o episódio (tirar o `?navios` e o
    protótipo de voltas do `World.tsx`); zoom da câmera em viagens longas.
 6. **Zoom da ilha** com animação e painel, começando por 1 ilha do East Blue.

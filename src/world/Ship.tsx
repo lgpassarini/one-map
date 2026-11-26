@@ -3,6 +3,7 @@ import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { MapControls as MapControlsImpl } from 'three-stdlib'
 import route from '../data/route.json'
+import { episodeStore, stopOf } from '../state/episode'
 import { cameraState } from './cameraState'
 import { shipState } from './shipState'
 import { toonRamp } from './toon'
@@ -12,9 +13,11 @@ import { shipSize, type ShipModelId } from './shipModels'
 import { buildSunny } from './sunnyModel'
 import { createTrail } from './Trail'
 
-// Protótipo do navio: um bote provisório que faz a rota inteira em vai e volta (Foosha → … →
-// Elbaf → … → Foosha), parando em cada parada. A rota vem de scripts/build-route.mjs
-// (src/data/route.json, na ordem dos episódios); aqui uma curva suave passa pelos pontos.
+// Navio do bando. No modo `viagem` (o normal), ele fica na parada do episódio atual e, quando outro
+// episódio é escolhido na barra, navega pela rota até a parada dele (de ida ou de volta, passando
+// direto pelas paradas do meio). A rota vem de scripts/build-route.mjs (src/data/route.json, na
+// ordem dos episódios); aqui uma curva suave passa pelos pontos.
+// Dev (?navios): protótipo com a rota inteira em vai e volta e voltas em mar aberto.
 //
 // O bote é feito como o terreno: camadas extrudadas com topo claro e parede mais escura,
 // toon shading e contorno fino no alto de cada camada.
@@ -31,6 +34,11 @@ const MIN_TRIP = 3
 const MAX_TRIP = 7
 const ACCEL = 0.28 // fração da viagem acelerando (e o mesmo freando)
 const GROW_BEFORE = 0.7 // s antes de chegar em que o navio começa a voltar ao tamanho cheio
+// Viagem até um episódio: ~2–3 s nas curtas; nas longas o navio acelera para caber no teto.
+const VOYAGE_SPEED = 12
+const VOYAGE_MIN = 2.2
+const VOYAGE_MAX = 7
+const CAM_CATCH = 2.5 // na viagem, a câmera alcança o navio (se a vista estava longe dele)
 
 // Dev: ?shipt=segundos adianta a animação (para screenshots).
 const START_T = Number(new URLSearchParams(window.location.search).get('shipt')) || 0
@@ -43,10 +51,10 @@ type Trip = { curve: THREE.CatmullRomCurve3; reverse: boolean; duration: number;
  * Por onde o navio anda: a rota dos portos (geo/places.json) ou, enquanto só ela existe, um
  * circuito oval em mar aberto (centro, raio em x e em z) para ver outros navios em outros mares.
  */
-export type Course = 'rota' | { center: [number, number]; rx: number; rz: number }
+export type Course = 'viagem' | 'rota' | { center: [number, number]; rx: number; rz: number }
 
-function buildTrips(course: Course): Trip[] {
-  const trips = course === 'rota' ? buildLegs() : buildLoop(course)
+/** Põe comprimento e início em cada viagem (em sequência). */
+function measure(trips: Trip[]) {
   let start = 0
   for (const t of trips) {
     t.length = t.curve.getLength()
@@ -56,14 +64,21 @@ function buildTrips(course: Course): Trip[] {
   return trips
 }
 
-/**
- * Ponto e direção (no sentido da viagem) a `s` unidades do início da rota inteira. A rota é um
- * ciclo (Foosha → … → Orange Town → … → Foosha), então `s` fora da faixa dá a volta.
- */
+function buildTrips(course: Course): Trip[] {
+  if (course === 'viagem') return []
+  return measure(course === 'rota' ? buildLegs() : buildLoop(course))
+}
+
+/** Fim (em unidades) da peça da rota que contém `s`: a direção nunca mira além de uma troca de borda. */
+function pieceEnd(trips: Trip[], s: number) {
+  const last = trips[trips.length - 1]
+  const trip = trips.find((t) => s < t.start + t.length) ?? last
+  return trip.start + trip.length - 1e-3
+}
+
+/** Ponto e direção (no sentido da viagem) a `s` unidades do início das viagens. */
 function pathAt(trips: Trip[], s: number, p: THREE.Vector3, tan: THREE.Vector3) {
   const last = trips[trips.length - 1]
-  const total = last.start + last.length
-  s = ((s % total) + total) % total
   const trip = trips.find((t) => s < t.start + t.length) ?? last
   const local = THREE.MathUtils.clamp((s - trip.start) / trip.length, 0, 1)
   const along = trip.reverse ? 1 - local : local
@@ -72,7 +87,7 @@ function pathAt(trips: Trip[], s: number, p: THREE.Vector3, tan: THREE.Vector3) 
   if (trip.reverse) tan.negate()
 }
 
-function buildLoop({ center: [cx, cz], rx, rz }: Exclude<Course, 'rota'>): Trip[] {
+function buildLoop({ center: [cx, cz], rx, rz }: Exclude<Course, string>): Trip[] {
   const N = 16
   const pts = Array.from({ length: N }, (_, i) => {
     const a = (-i / N) * Math.PI * 2 // anti-horário visto de cima
@@ -94,19 +109,10 @@ function buildLegs(): Trip[] {
   // Uma perna com `jump` (passagem por baixo da Red Line até a Ilha dos Tritões) vira duas
   // viagens: o navio some numa borda do mapa e reaparece na outra.
   // Pernas paradas (`stay`, a parada seguinte é no mesmo porto) não viram viagem.
-  const pieces = route.legs.flatMap((leg) => {
-    if (leg.points.length < 2) return []
-    const j = 'jump' in leg ? leg.jump : undefined
-    return j ? [leg.points.slice(0, j), leg.points.slice(j)] : [leg.points]
-  })
+  const pieces = route.legs.flatMap((leg) => (leg.points.length < 2 ? [] : legParts(leg)))
   const legs = pieces.map((points) => {
-    const curve = new THREE.CatmullRomCurve3(
-      points.map(([x, z, y]) => new THREE.Vector3(x, y ?? 0, z)),
-      false,
-      'centripetal',
-    )
+    const curve = curveOf(points)
     const length = points.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - points[i - 1][0], p[1] - points[i - 1][1]) : 0), 0)
-    curve.arcLengthDivisions = Math.max(200, points.length * 8)
     const duration = THREE.MathUtils.clamp(length / SPEED, MIN_TRIP, MAX_TRIP)
     return { curve, duration, length: 0, start: 0 }
   })
@@ -114,9 +120,97 @@ function buildLegs(): Trip[] {
   return [...legs.map((l) => ({ ...l, reverse: false })), ...[...legs].reverse().map((l) => ({ ...l, reverse: true }))]
 }
 
-/** Direção (rumo, como `heading`) de `a` para `b` unidades da rota; null se os pontos quase coincidem. */
+type Pt = number[] // [x, z] ou [x, z, y]
+
+function curveOf(points: Pt[]) {
+  const curve = new THREE.CatmullRomCurve3(
+    points.map(([x, z, y]) => new THREE.Vector3(x, y ?? 0, z)),
+    false,
+    'centripetal',
+  )
+  curve.arcLengthDivisions = Math.max(200, points.length * 8)
+  return curve
+}
+
+/** Partes de uma perna: duas quando ela troca de borda (`jump`), senão uma. */
+function legParts(leg: (typeof route.legs)[number]): Pt[][] {
+  const j = 'jump' in leg ? leg.jump : undefined
+  return j ? [leg.points.slice(0, j), leg.points.slice(j)] : [leg.points]
+}
+
+/**
+ * Viagem da parada `from` até a parada `to` (índices em route.stops): as pernas do caminho
+ * emendadas numa curva só (o navio passa direto pelas paradas do meio), partida em peças só onde
+ * a rota troca de borda. Para trás, as mesmas pernas invertidas. Vazia se não há o que navegar
+ * (mesma parada ou portos iguais).
+ */
+function buildVoyage(from: number, to: number): { trips: Trip[]; duration: number } {
+  const back = to < from
+  const legs = route.legs.slice(Math.min(from, to), Math.max(from, to))
+  if (back) legs.reverse()
+  const pieces: Pt[][] = []
+  let cur: Pt[] = []
+  for (const leg of legs) {
+    const parts = legParts(leg)
+    if (back) parts.reverse()
+    parts.forEach((part, k) => {
+      // A segunda parte de uma perna com `jump` começa uma peça nova (do outro lado do mapa).
+      if (k > 0 && cur.length) {
+        pieces.push(cur)
+        cur = []
+      }
+      for (const p of back ? [...part].reverse() : part) {
+        const q = cur[cur.length - 1]
+        if (!q || Math.hypot(p[0] - q[0], p[1] - q[1], (p[2] ?? 0) - (q[2] ?? 0)) > 1e-3) cur.push(p)
+      }
+    })
+  }
+  if (cur.length) pieces.push(cur)
+  const trips = measure(
+    pieces.filter((p) => p.length >= 2).map((p) => ({ curve: curveOf(p), reverse: false, duration: 0, length: 0, start: 0 })),
+  )
+  const total = trips.reduce((s, t) => s + t.length, 0)
+  return { trips, duration: THREE.MathUtils.clamp(total / VOYAGE_SPEED, VOYAGE_MIN, VOYAGE_MAX) }
+}
+
+/** Rumo do navio parado numa parada sem ter viajado: como se tivesse chegado pela rota. */
+function restingHeading(stop: number) {
+  const dir = (pts: Pt[]) => {
+    for (let i = pts.length - 1; i > 0; i--) {
+      const dx = pts[i][0] - pts[i - 1][0], dz = pts[i][1] - pts[i - 1][1]
+      if (dx * dx + dz * dz > 1e-4) return Math.atan2(-dx, -dz)
+    }
+    return null
+  }
+  for (let i = stop - 1; i >= 0; i--) {
+    const parts = legParts(route.legs[i])
+    const h = dir(parts[parts.length - 1])
+    if (h !== null) return h
+  }
+  const first = route.legs.find((l) => l.points.length > 1)
+  return first ? (dir([...legParts(first)[0]].slice(0, 2)) ?? 0) : 0
+}
+
+/** Porto da parada `stop` (onde o navio fica parado). */
+const ports = new Map<number, THREE.Vector3>()
+function stopPort(stop: number): THREE.Vector3 {
+  const hit = ports.get(stop)
+  if (hit) return hit
+  // Perna que sai da parada (ou, na última, a que chega): o ponto da ponta é o porto.
+  const out = route.legs[stop]
+  const p = out ? out.points[0] : route.legs[stop - 1].points[route.legs[stop - 1].points.length - 1]
+  const v = new THREE.Vector3(p[0], p[2] ?? 0, p[1])
+  ports.set(stop, v)
+  return v
+}
+
+/**
+ * Direção (rumo, como `heading`) do ponto `a` para o ponto `look` unidades à frente na rota (sem
+ * passar do fim da peça); null se os pontos quase coincidem.
+ */
 const scratchTan = new THREE.Vector3()
-function headingTo(trips: Trip[], a: number, b: number, pa: THREE.Vector3, pb: THREE.Vector3) {
+function headingTo(trips: Trip[], a: number, look: number, pa: THREE.Vector3, pb: THREE.Vector3) {
+  const b = Math.min(a + look, pieceEnd(trips, a))
   pathAt(trips, a, pa, scratchTan)
   pathAt(trips, b, pb, scratchTan)
   const dx = pb.x - pa.x, dz = pb.z - pa.z
@@ -235,15 +329,22 @@ type ShipProps = {
   course?: Course
 }
 
-export function Ship({ model = 'bote', phase = 0, lead = true, course = 'rota' }: ShipProps) {
-  const trips = useMemo(() => buildTrips(course), [course])
+/** Onde o navio começa no modo `viagem`: o porto da parada do episódio salvo. */
+export function voyageStart(): [number, number] {
+  const p = stopPort(stopOf(episodeStore.get().episode))
+  return [p.x, p.z]
+}
+
+export function Ship({ model = 'bote', phase = 0, lead = true, course = 'viagem' }: ShipProps) {
+  const voyage = course === 'viagem'
+  const loopTrips = useMemo(() => buildTrips(course), [course])
   const body = useMemo(() => BUILDERS[model](), [model])
   const trail = useMemo(() => createTrail(), [])
   const ship = useRef<THREE.Group>(null)
   const scale = shipSize(model)
   const st = useRef({
     trip: 0,
-    t: START_T - PAUSE + phase,
+    t: voyage ? 0 : START_T - PAUSE + phase,
     clock: 0,
     last: new THREE.Vector3(),
     heading: 0,
@@ -253,6 +354,10 @@ export function Ship({ model = 'bote', phase = 0, lead = true, course = 'rota' }
     size: 1,
     motion: 0,
     init: false,
+    // Modo viagem: parada onde o navio está (ou de onde partiu), destino e a viagem em curso.
+    at: stopOf(episodeStore.get().episode),
+    to: 0,
+    run: null as { trips: Trip[]; duration: number } | null,
   })
   const tmp = useMemo(() => ({ p: new THREE.Vector3(), tan: new THREE.Vector3(), ahead: new THREE.Vector3() }), [])
 
@@ -262,90 +367,139 @@ export function Ship({ model = 'bote', phase = 0, lead = true, course = 'rota' }
     const s = st.current
     s.clock += dt
     s.t += dt
-    let trip = trips[s.trip]
-    while (s.t > trip.duration) {
-      s.t -= trip.duration + PAUSE
-      s.trip = (s.trip + 1) % trips.length
-      trip = trips[s.trip]
-      s.left = false
+
+    // Janela: o trecho da rota que o navio percorre agora (`from` + `len` unidades em `duration`
+    // segundos), ou nenhum (parado numa parada, no modo viagem).
+    let trips: Trip[] | null = null
+    let from = 0, len = 0, duration = 1
+    if (voyage) {
+      if (!s.run) {
+        const target = stopOf(episodeStore.get().episode)
+        if (target !== s.at) {
+          const v = buildVoyage(s.at, target)
+          if (v.trips.length) {
+            s.run = v
+            s.to = target
+            s.t = 0
+            s.left = false
+            episodeStore.setSailing(true)
+          } else s.at = target // mesmo porto: não há o que navegar
+        }
+      } else if (s.t >= s.run.duration) {
+        // Chegou: fica parado no porto do destino, como chegou.
+        s.at = s.to
+        s.run = null
+        episodeStore.setSailing(false)
+      }
+      if (s.run) {
+        trips = s.run.trips
+        const last = trips[trips.length - 1]
+        len = last.start + last.length
+        duration = s.run.duration
+      }
+    } else {
+      let trip = loopTrips[s.trip]
+      while (s.t > trip.duration) {
+        s.t -= trip.duration + PAUSE
+        s.trip = (s.trip + 1) % loopTrips.length
+        trip = loopTrips[s.trip]
+        s.left = false
+      }
+      trips = loopTrips
+      from = trip.start
+      len = trip.length
+      duration = trip.duration
     }
-    const tripEnd = trip.start + trip.length - 1e-3
+    const end = from + len - 1e-3
 
     // Saída: na hora de partir, o navio primeiro vira no lugar (devagar, uma vez) até apontar para
     // onde vai de fato (o ponto EXIT_LOOK à frente na rota) e só então anda; a pausa se estende.
-    const turningOut = s.t > 0 && !s.left && s.init
+    const turningOut = trips !== null && s.t > 0 && !s.left && s.init
     if (turningOut) {
-      const exit = headingTo(trips, trip.start, Math.min(trip.start + EXIT_LOOK, tripEnd), tmp.p, tmp.ahead)
+      const exit = headingTo(trips!, from, EXIT_LOOK, tmp.p, tmp.ahead)
       if (exit !== null && Math.abs(angleDiff(s.heading, exit)) > 0.03) {
         s.t = 0
         const rate = THREE.MathUtils.clamp(angleDiff(s.heading, exit) * 1.5, -TURN_STOPPED, TURN_STOPPED)
         s.angVel = damp(s.angVel, rate, 2.5, dt)
       } else s.left = true
     }
-    const sailing = s.t > 0
-    const u = sailing ? travel(s.t / trip.duration) : 0
-    const pos = trip.start + u * trip.length
-    pathAt(trips, pos, tmp.p, tmp.tan)
+    const sailing = trips !== null && s.t > 0
+    const u = sailing ? travel(Math.min(1, s.t / duration)) : 0
+    const pos = Math.min(from + u * len, end)
+    if (trips) pathAt(trips, pos, tmp.p, tmp.tan)
+    else tmp.p.copy(stopPort(s.at))
 
     // Direção: navegando, a proa aponta para um ponto LOOK à frente no caminho (corda, não a
     // tangente: as curvinhas do traçado não viram giros). Parado, a direção fica como chegou.
     const before = s.heading
-    if (!s.init) s.heading = Math.atan2(-tmp.tan.x, -tmp.tan.z)
+    if (!s.init) s.heading = trips ? Math.atan2(-tmp.tan.x, -tmp.tan.z) : restingHeading(s.at)
     if (sailing) {
-      const want = headingTo(trips, pos, Math.min(pos + LOOK, tripEnd), tmp.ahead, tmp.tan)
+      const want = headingTo(trips!, pos, LOOK, tmp.ahead, tmp.tan)
       if (want !== null) s.heading += angleDiff(s.heading, want) * (1 - Math.exp(-dt * 5))
       s.angVel = 0
     } else if (turningOut) s.heading += s.angVel * dt
     else s.angVel = 0
-    pathAt(trips, pos, tmp.p, tmp.tan) // headingTo usa os vetores temporários
+    if (trips) pathAt(trips, pos, tmp.p, tmp.tan) // headingTo usa os vetores temporários
     s.turnRate = damp(s.turnRate, angleDiff(before, s.heading) / Math.max(dt, 1e-3), 6, dt)
 
-    // Câmera acompanha enquanto o navio está na área vista (se o usuário levou a vista para
-    // longe, ela fica onde está).
+    // Câmera: acompanha enquanto o navio está na área vista (se o usuário levou a vista para
+    // longe, ela fica onde está). Numa viagem até um episódio, acompanha sempre e, se a vista
+    // estava longe, vai até o navio.
     if (lead && s.init && controls) {
       const dx = tmp.p.x - s.last.x, dz = tmp.p.z - s.last.z
       const [tx, tz] = cameraState.target
       const [hw, hh] = cameraState.half
-      if ((dx || dz) && Math.abs(tmp.p.x - tx) < hw * 0.9 && Math.abs(tmp.p.z - tz) < hh * 0.9) {
-        controls.target.x += dx
-        controls.target.z += dz
-        camera.position.x += dx
-        camera.position.z += dz
+      const voyaging = voyage && s.run !== null
+      let mx = 0, mz = 0
+      if (voyaging || (Math.abs(tmp.p.x - tx) < hw * 0.9 && Math.abs(tmp.p.z - tz) < hh * 0.9)) {
+        mx = dx
+        mz = dz
+      }
+      if (voyaging) {
+        const k = 1 - Math.exp(-CAM_CATCH * dt)
+        mx += (tmp.p.x - controls.target.x - mx) * k
+        mz += (tmp.p.z - controls.target.z - mz) * k
+      }
+      if (mx || mz) {
+        controls.target.x += mx
+        controls.target.z += mz
+        camera.position.x += mx
+        camera.position.z += mz
       }
     }
     s.last.copy(tmp.p)
     s.init = true
 
     // Tamanho e "modo navegando" amortecidos: encolhe ao sair, volta a crescer perto de chegar.
-    const cruising = sailing && s.t < trip.duration - GROW_BEFORE
+    const cruising = sailing && s.t < duration - GROW_BEFORE
     s.size = damp(s.size, cruising ? SAIL_SCALE : 1, cruising ? 5 : 3.5, dt)
     s.motion = damp(s.motion, cruising ? 1 : 0, 3, dt)
     const minLen = camera.position.distanceTo(tmp.p) * MIN_SCREEN
-    const len = Math.max(SHIP_LEN * scale * s.size, minLen * scale)
+    const len3d = Math.max(SHIP_LEN * scale * s.size, minLen * scale)
 
     // Balanço na água: altura e inclinação vêm das ondas sob a proa, a popa e os lados.
     const fx = -Math.sin(s.heading), fz = -Math.cos(s.heading)
-    const half = len * 0.45, side = len * 0.2
+    const half = len3d * 0.45, side = len3d * 0.2
     const T = s.clock
     const hBow = wave(tmp.p.x + fx * half, tmp.p.z + fz * half, T)
     const hStern = wave(tmp.p.x - fx * half, tmp.p.z - fz * half, T)
     const hL = wave(tmp.p.x - fz * side, tmp.p.z + fx * side, T)
     const hR = wave(tmp.p.x + fz * side, tmp.p.z - fx * side, T)
     const amp = 0.035 * (1 - 0.4 * s.motion) // navegando, corta as ondas
-    const heave = ((hBow + hStern + hL + hR) / 4) * amp * len
+    const heave = ((hBow + hStern + hL + hR) / 4) * amp * len3d
     const pitch = (hBow - hStern) * amp * 1.4 + s.motion * 0.05 // proa levanta um pouco ao navegar
     const roll = (hR - hL) * amp * 2.2 - THREE.MathUtils.clamp(s.turnRate * 0.12, -0.18, 0.18) // inclina nas curvas
 
     // y da rota: subida pelos canais da Reverse Mountain e mergulho por baixo da Red Line.
     g.position.set(tmp.p.x, tmp.p.y + heave, tmp.p.z)
     g.rotation.set(pitch, s.heading, roll, 'YXZ')
-    g.scale.setScalar(len)
+    g.scale.setScalar(len3d)
     body.flag.rotation.y = body.flagYaw + Math.sin(T * 7) * 0.3 // tremula
 
     // Rastro na água a partir da popa, enquanto navega.
-    const stern = { x: tmp.p.x - fx * len * 0.42, z: tmp.p.z - fz * len * 0.42 }
+    const stern = { x: tmp.p.x - fx * len3d * 0.42, z: tmp.p.z - fz * len3d * 0.42 }
     const onSea = Math.abs(tmp.p.y) < 0.1 // nos canais e no mergulho não há rastro no mar
-    trail.update(dt, sailing && s.motion > 0.05 && onSea ? stern : null, len)
+    trail.update(dt, sailing && s.motion > 0.05 && onSea ? stern : null, len3d)
 
     if (lead) {
       shipState.pos = [tmp.p.x, tmp.p.z]
@@ -356,12 +510,12 @@ export function Ship({ model = 'bote', phase = 0, lead = true, course = 'rota' }
 
   useFrame((state, rawDt) => {
     const g = ship.current
-    if (!g || !trips.length) return
+    if (!g || (!voyage && !loopTrips.length)) return
     const controls = state.controls as MapControlsImpl | null
-    // Dev (?shipt): simula os segundos anteriores, para o rastro já existir no screenshot.
+    // Dev (?shipt, só no protótipo): simula os segundos anteriores, para o rastro já existir no screenshot.
     if (!warmed.current) {
       warmed.current = true
-      if (START_T > 0) {
+      if (!voyage && START_T > 0) {
         st.current.t -= WARMUP
         for (let i = 0; i < WARMUP * 30; i++) tick(g, state.camera, controls, 1 / 30)
       }

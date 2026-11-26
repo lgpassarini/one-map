@@ -21,12 +21,16 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
 - **Fillers e recaps entram** no navegador com as tags `Filler` e `Recap`, sem pular nenhum.
   Ilhas que só existem em filler ganham um marcador no ponto aproximado da rota.
 - **Progresso = o episódio selecionado**, salvo no localStorage. Não existe "assistido".
-- **Sincronização entre aparelhos é manual:** exportar e importar, mais o link `?ep=405`.
-  Login fica para o futuro.
+- **Sincronização entre aparelhos é manual:** só o link `?ep=405` (escolhe e salva o episódio).
+  Exportar/importar arquivo foi descartado em 26/11. Login fica para o futuro.
+- **Episódio 0 = "Partida":** sem nada salvo, o navio está em Vila Foosha, antes do Ep 1.
 
 ## Navegador (barra no topo)
-- `< Arco X · Ep N >`: as setas avançam ou voltam um episódio.
-- Clicar no nome abre uma lista para escolher qualquer episódio.
+- `< Arco X · Ep N >`: as setas (e ← → no teclado) avançam ou voltam um episódio. Embaixo, o
+  local e as tags Filler/Recap.
+- Clicar no nome abre uma lista para escolher qualquer episódio, agrupada por arco (com o local e
+  a faixa de episódios), aberta no episódio atual, com busca por número, título, arco ou ilha.
+- Viagem de vários trechos: o navio passa direto pelas paradas do meio, sem parar.
 - Escolher um episódio dispara a animação do navio até o local, **seguindo a rota real**,
   inclusive de volta.
 - **A barra fica travada durante a animação.**

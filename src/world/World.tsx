@@ -1,5 +1,4 @@
 import { Suspense } from 'react'
-import route from '../data/route.json'
 import type { Quality } from '../quality'
 import { CameraRig } from './CameraRig'
 import { Canals } from './Canals'
@@ -7,15 +6,12 @@ import { mapPxToWorld } from './coords'
 import { EdgeFog } from './EdgeFog'
 import { Ocean } from './Ocean'
 import { PlaceLabelsProjector } from './PlaceLabels'
-import { type Course, courseStart, Ship } from './Ship'
+import { type Course, courseStart, Ship, voyageStart } from './Ship'
 import type { ShipModelId } from './shipModels'
 import { Terrain } from './Terrain'
 
-// Vila Foosha: ponto de partida enquanto não há episódio selecionado.
-const FOOSHA = route.places.foosha.port as [number, number]
-
-// Navios fora do mapa por enquanto (voltam com a troca por episódio). Dev: ?navios mostra o
-// protótipo abaixo.
+// O navio do bando fica na parada do episódio atual e viaja quando outro é escolhido na barra.
+// Dev: ?navios troca pelo protótipo abaixo.
 const SHOW_SHIPS = new URLSearchParams(window.location.search).has('navios')
 
 // Protótipo: um navio em cada mar. O bote faz a rota do East Blue; o Merry e o Sunny dão voltas
@@ -36,7 +32,7 @@ function startView(): { at: [number, number]; dist: number } {
   const at = p.get('at')?.split(',').map(Number)
   const dist = Number(p.get('dist')) || 50
   if (at?.length === 2) return { at: mapPxToWorld(at[0], at[1]), dist }
-  return { at: !SHOW_SHIPS || LEAD === 'bote' ? FOOSHA : courseStart(COURSES[LEAD]), dist }
+  return { at: SHOW_SHIPS ? courseStart(COURSES[LEAD]) : voyageStart(), dist }
 }
 const START = startView()
 
@@ -56,9 +52,11 @@ export function World({ quality }: { quality: Quality }) {
         <Canals />
         <Ocean quality={quality} />
       </Suspense>
-      {SHOW_SHIPS && SHIPS.map((id) => (
-        <Ship key={id} model={id} lead={id === LEAD} course={COURSES[id]} />
-      ))}
+      {SHOW_SHIPS ? (
+        SHIPS.map((id) => <Ship key={id} model={id} lead={id === LEAD} course={COURSES[id]} />)
+      ) : (
+        <Ship course="viagem" />
+      )}
       <EdgeFog />
       <CameraRig start={START.at} distance={START.dist} />
       {/* depois da câmera: os nomes usam a posição dela deste frame (antes, ficavam um frame atrás) */}

@@ -1,0 +1,282 @@
+/* Barra de episódios no topo, no estilo dos rótulos do mapa: papel claro, tinta quase preta,
+   contorno marrom grosso e sombra chapada (cartoon). */
+.ep-bar-wrap {
+  --paper: #fbf3df;
+  --paper-dark: #efe1bf;
+  --ink: #2a1a0e;
+  --ink-soft: #6b4a30;
+  --edge: #4a2f1c;
+  --accent: #9b1c1c;
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 10;
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+.ep-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  padding: 5px;
+  background: var(--paper);
+  border: 2.5px solid var(--edge);
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--edge), 0 8px 18px rgba(0, 0, 0, 0.3);
+}
+
+.ep-bar button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.ep-bar button:disabled {
+  cursor: default;
+}
+
+.ep-bar__arrow {
+  width: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--paper-dark) !important;
+  transition: background 0.12s, transform 0.08s;
+}
+
+.ep-bar__arrow svg path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ep-bar__arrow:not(:disabled):hover {
+  background: #e6d2a4 !important;
+}
+
+.ep-bar__arrow:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.ep-bar__arrow:disabled svg path {
+  stroke: #c4ad86;
+}
+
+.ep-bar__title {
+  min-width: 260px;
+  padding: 3px 14px 4px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  transition: background 0.12s;
+}
+
+.ep-bar__title:not(:disabled):hover {
+  background: var(--paper-dark);
+}
+
+.ep-bar__main {
+  font-family: 'Alegreya', Georgia, serif;
+  font-weight: 800;
+  font-size: 21px;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.ep-bar__dot {
+  color: var(--accent);
+}
+
+.ep-bar__caret {
+  margin-left: 7px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  vertical-align: 2px;
+}
+
+.ep-bar__sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* Viajando: a barra fica travada (apagada) e o subtítulo diz "Navegando…". */
+.ep-bar--locked .ep-bar__main,
+.ep-bar--locked .ep-bar__caret {
+  opacity: 0.55;
+}
+
+.ep-bar--locked .ep-bar__sub {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Tags Filler e Recap. */
+.ep-tag {
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 17px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1.5px solid currentColor;
+  flex: none;
+}
+
+.ep-tag--filler {
+  color: #b5651d;
+}
+
+.ep-tag--recap {
+  color: #3d6f8f;
+}
+
+/* Lista de episódios. */
+.ep-list {
+  width: min(480px, 94vw);
+  max-height: min(66vh, 640px);
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 2.5px solid var(--edge);
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--edge), 0 10px 24px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.ep-list__search {
+  margin: 10px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  background: #fffaf0;
+  border: 2px solid var(--paper-dark);
+  border-radius: 9px;
+  outline: none;
+}
+
+.ep-list__search:focus {
+  border-color: var(--ink-soft);
+}
+
+.ep-list__scroll {
+  overflow-y: auto;
+  padding: 0 6px 8px;
+  overscroll-behavior: contain;
+}
+
+.ep-group__head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 8px 4px;
+  background: var(--paper);
+  border-bottom: 1.5px solid var(--paper-dark);
+}
+
+.ep-group__arc {
+  font-family: 'Alegreya', Georgia, serif;
+  font-weight: 800;
+  font-size: 17px;
+}
+
+.ep-group__meta {
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.ep-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ep-row:hover {
+  background: var(--paper-dark);
+}
+
+.ep-row__n {
+  flex: none;
+  width: 38px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.ep-row__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Onde você está. */
+.ep-row--current {
+  background: var(--accent) !important;
+  color: #fffaf0;
+}
+
+.ep-row--current .ep-row__n,
+.ep-row--current .ep-tag {
+  color: #fffaf0;
+}
+
+.ep-row--start {
+  margin-top: 4px;
+}
+
+.ep-list__empty {
+  margin: 18px;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 600px) {
+  .ep-bar-wrap {
+    top: 10px;
+  }
+  .ep-bar__title {
+    min-width: 0;
+    padding: 2px 8px 3px;
+  }
+  .ep-bar__main {
+    font-size: 17px;
+  }
+  .ep-bar__arrow {
+    width: 34px;
+  }
+}
