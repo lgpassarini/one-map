@@ -12,9 +12,9 @@ import { shipSize, type ShipModelId } from './shipModels'
 import { buildSunny } from './sunnyModel'
 import { createTrail } from './Trail'
 
-// Protótipo do navio: um bote provisório que faz a rota de geo/places.json em vai e volta
-// (Foosha → Shells Town → Orange Town → … → Foosha), parando em cada porto. A rota vem de
-// scripts/build-route.mjs (src/data/route.json); aqui uma curva suave passa pelos pontos.
+// Protótipo do navio: um bote provisório que faz a rota inteira em vai e volta (Foosha → … →
+// Elbaf → … → Foosha), parando em cada parada. A rota vem de scripts/build-route.mjs
+// (src/data/route.json, na ordem dos episódios); aqui uma curva suave passa pelos pontos.
 //
 // O bote é feito como o terreno: camadas extrudadas com topo claro e parede mais escura,
 // toon shading e contorno fino no alto de cada camada.
@@ -88,14 +88,21 @@ export function courseStart(course: Course): [number, number] {
 }
 
 function buildLegs(): Trip[] {
-  const legs = route.legs.map((leg) => {
+  // Uma perna com `jump` (passagem por baixo da Red Line até a Ilha dos Tritões) vira duas
+  // viagens: o navio some numa borda do mapa e reaparece na outra.
+  const pieces = route.legs.flatMap((leg) => {
+    const j = 'jump' in leg ? leg.jump : undefined
+    return j ? [leg.points.slice(0, j), leg.points.slice(j)] : [leg.points]
+  })
+  const legs = pieces.map((points) => {
     const curve = new THREE.CatmullRomCurve3(
-      leg.points.map(([x, z]) => new THREE.Vector3(x, 0, z)),
+      points.map(([x, z, y]) => new THREE.Vector3(x, y ?? 0, z)),
       false,
       'centripetal',
     )
-    curve.arcLengthDivisions = Math.max(200, leg.points.length * 8)
-    const duration = THREE.MathUtils.clamp(leg.length / SPEED, MIN_TRIP, MAX_TRIP)
+    const length = points.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - points[i - 1][0], p[1] - points[i - 1][1]) : 0), 0)
+    curve.arcLengthDivisions = Math.max(200, points.length * 8)
+    const duration = THREE.MathUtils.clamp(length / SPEED, MIN_TRIP, MAX_TRIP)
     return { curve, duration, length: 0, start: 0 }
   })
   // Ida pelas pernas e volta pelas mesmas, de trás para frente.
@@ -293,14 +300,16 @@ export function Ship({ model = 'bote', phase = 0, lead = true, course = 'rota' }
     const pitch = (hBow - hStern) * amp * 1.4 + s.motion * 0.05 // proa levanta um pouco ao navegar
     const roll = (hR - hL) * amp * 2.2 - THREE.MathUtils.clamp(s.turnRate * 0.12, -0.18, 0.18) // inclina nas curvas
 
-    g.position.set(tmp.p.x, heave, tmp.p.z)
+    // y da rota: subida pelos canais da Reverse Mountain e mergulho por baixo da Red Line.
+    g.position.set(tmp.p.x, tmp.p.y + heave, tmp.p.z)
     g.rotation.set(pitch, s.heading, roll, 'YXZ')
     g.scale.setScalar(len)
     body.flag.rotation.y = body.flagYaw + Math.sin(T * 7) * 0.3 // tremula
 
     // Rastro na água a partir da popa, enquanto navega.
     const stern = { x: tmp.p.x - fx * len * 0.42, z: tmp.p.z - fz * len * 0.42 }
-    trail.update(dt, sailing && s.motion > 0.05 ? stern : null, len)
+    const onSea = Math.abs(tmp.p.y) < 0.1 // nos canais e no mergulho não há rastro no mar
+    trail.update(dt, sailing && s.motion > 0.05 && onSea ? stern : null, len)
 
     if (lead) {
       shipState.pos = [tmp.p.x, tmp.p.z]

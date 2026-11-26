@@ -1,4 +1,10 @@
-// Passo 3 do pipeline do mapa: rota do navio pelo mar, entre os locais de geo/places.json.
+// Passo 3 do pipeline do mapa: rota do navio pelo mar, na ordem dos episódios.
+//
+// As paradas vêm de src/data/episodes.json: uma por trecho de episódios seguidos no mesmo local
+// (começando em routeOrigin, Foosha); os episódios no mar param no meio do caminho entre o local
+// de antes e o de depois. Duas pernas são especiais: a travessia da Reverse Mountain (sobe pelo
+// canal do East Blue e desce pelas cachoeiras, com a altura da água em y) e a passagem para a
+// Ilha dos Tritões (mergulha por baixo da Red Line da borda leste e sai na borda oeste; `jump`).
 //
 // Cada local é um pixel no print da sua região → pixel do mapa → mundo (com a escala da ilha,
 // src/data/islands.json). O porto é o ponto de mar mais próximo com folga PORT_CLEAR da costa.
@@ -7,8 +13,11 @@
 // aberto. Depois os pontos são enxugados (atalhos em linha reta que não chegam mais perto da
 // costa do que o caminho original), as quinas arredondadas e tudo reamostrado em passos iguais.
 //
-// Entrada: geo/places.json, geo/geography.json, reference/regions/align.json, coast.png, islands.json
-// Saída:   src/data/route.json e src/data/places.json (todos os locais com posição, para os nomes)
+// Entrada: geo/places.json, src/data/episodes.json, geo/geography.json, reference/regions/align.json,
+//          coast.png, canals.json, islands.json
+// Saída:   src/data/route.json (places, stops, legs; legs[i] vai de stops[i] a stops[i + 1]; pontos
+//          [x, z] ou [x, z, y]) e src/data/places.json (todos os locais com posição, para os nomes)
+// Conferência: node scripts/route-overlay.mjs
 //
 // Uso: node scripts/build-route.mjs   (depois de npm run geo:terrain)
 import sharp from 'sharp'
@@ -17,7 +26,7 @@ import { printTransforms } from './lib/regions.mjs'
 
 const geo = JSON.parse(await readFile('geo/geography.json', 'utf8'))
 const align = JSON.parse(await readFile('reference/regions/align.json', 'utf8'))
-const { places, route } = JSON.parse(await readFile('geo/places.json', 'utf8'))
+const { places } = JSON.parse(await readFile('geo/places.json', 'utf8'))
 const meta = JSON.parse(await readFile('src/data/terrain-meta.json', 'utf8'))
 const islandData = JSON.parse(await readFile('src/data/islands.json', 'utf8'))
 const T = printTransforms(geo, align)
@@ -166,7 +175,8 @@ function simplify(path) {
 const CUT = 2.5
 const STEP = 1
 const clearAtWorld = (p) => clearAt(...toCell(p))
-function smoothPath(pts) {
+const smoothPath = (pts) => resample(chaikin(pts))
+function chaikin(pts) {
   for (let pass = 0; pass < 3; pass++) {
     const out = [pts[0]]
     for (let i = 1; i < pts.length - 1; i++) {
@@ -182,51 +192,34 @@ function smoothPath(pts) {
     out.push(pts[pts.length - 1])
     pts = out
   }
-  // Reamostra em passos iguais (a curva do app fica com velocidade e giro uniformes).
+  return pts
+}
+
+/** Reamostra em passos iguais (a curva do app fica com velocidade e giro uniformes). Pontos 2D ou 3D. */
+const dist = (a, b) => Math.hypot(...a.map((v, k) => b[k] - v))
+const lerp = (a, b, t) => a.map((v, k) => v + (b[k] - v) * t)
+function resample(pts) {
   const res = [pts[0]]
   let carry = 0
   for (let i = 1; i < pts.length; i++) {
-    const [ax, az] = pts[i - 1], [bx, bz] = pts[i]
-    const len = Math.hypot(bx - ax, bz - az)
+    const a = pts[i - 1], b = pts[i]
+    const len = dist(a, b)
     let t = STEP - carry
     while (t < len) {
-      res.push([ax + ((bx - ax) * t) / len, az + ((bz - az) * t) / len])
+      res.push(lerp(a, b, t / len))
       t += STEP
     }
     carry = len - (t - STEP)
   }
   const last = pts[pts.length - 1]
-  const tail = res[res.length - 1]
-  if (Math.hypot(last[0] - tail[0], last[1] - tail[1]) < STEP * 0.5) res.pop()
+  if (dist(last, res[res.length - 1]) < STEP * 0.5) res.pop()
   res.push(last)
   return res
 }
+const pathLength = (pts) => pts.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0), 0)
 
-// ---------- Monta ----------
-const out = { places: {}, legs: [] }
-for (const id of route) {
-  const p = places[id]
-  const t = T[p.region]
-  if (!t) throw new Error(`região desconhecida: ${p.region}`)
-  const town = mapPxToWorld(t.sx * p.px[0] + t.tx, t.sy * p.px[1] + t.ty)
-  const port = toWorld(...nearestWater(town, PORT_CLEAR))
-  out.places[id] = { name: p.name, town: town.map((v) => +v.toFixed(2)), port: port.map((v) => +v.toFixed(2)) }
-}
-for (let k = 0; k < route.length - 1; k++) {
-  const a = out.places[route[k]], b = out.places[route[k + 1]]
-  const path = simplify(astar(toCell(a.port), toCell(b.port)))
-  const raw = path.map(([x, y]) => toWorld(x, y))
-  raw[0] = a.port
-  raw[raw.length - 1] = b.port
-  const points = smoothPath(raw).map((p) => p.map((v) => +v.toFixed(2)))
-  let len = 0
-  for (let q = 1; q < points.length; q++) len += Math.hypot(points[q][0] - points[q - 1][0], points[q][1] - points[q - 1][1])
-  out.legs.push({ from: route[k], to: route[k + 1], length: +len.toFixed(1), points })
-  console.log(`${route[k]} → ${route[k + 1]}: ${len.toFixed(1)} unidades, ${points.length} pontos`)
-}
-await writeFile('src/data/route.json', JSON.stringify(out) + '\n')
-
-// Todos os locais com posição (não só os da rota), para os nomes no mapa (PlaceLabels).
+// ---------- Locais: posição no mundo ----------
+// Todos os locais com posição (não só os da rota), também para os nomes no mapa (PlaceLabels).
 // O encaixe dos prints da Grand Line erra alguns px: um local canônico que cai no mar perto de
 // uma ilha (até SNAP px do mapa) vai para a borda dessa ilha, para o pino ficar em cima dela
 // e acompanhar o crescimento da ilha. Fillers não grudam (alguns são pontos no mar de propósito).
@@ -254,9 +247,171 @@ for (const [id, p] of Object.entries(places)) {
     if (s[0] !== m[0] || s[1] !== m[1]) console.log(`  ${id}: grudado na ilha (${Math.hypot(s[0] - m[0], s[1] - m[1]).toFixed(1)} px)`)
     m = s
   }
-  const town = mapPxToWorld(...m)
-  all[id] = { name: p.name, ...(p.kind && { kind: p.kind }), town: town.map((v) => +v.toFixed(2)) }
+  all[id] = { name: p.name, ...(p.kind && { kind: p.kind }), town: mapPxToWorld(...m) }
 }
-await writeFile('src/data/places.json', JSON.stringify(all) + '\n')
+const r2 = (p) => p.map((v) => +v.toFixed(2))
+await writeFile('src/data/places.json', JSON.stringify(Object.fromEntries(Object.entries(all).map(([id, p]) => [id, { ...p, town: r2(p.town) }]))) + '\n')
 console.log(`src/data/places.json: ${Object.keys(all).length} locais`)
+
+// ---------- Paradas: a ordem dos episódios ----------
+// Uma parada por trecho de episódios seguidos no mesmo local (src/data/episodes.json). Os
+// episódios no mar (place null, sea [antes, depois]) param no meio do caminho entre os dois.
+const eps = JSON.parse(await readFile('src/data/episodes.json', 'utf8'))
+const stops = [{ key: eps.routeOrigin, place: eps.routeOrigin, episodes: null }]
+for (const ep of eps.episodes) {
+  const key = ep.place ?? `mar:${ep.sea.join('>')}`
+  const last = stops[stops.length - 1]
+  if (last.key === key) last.episodes[1] = ep.n
+  else stops.push({ key, ...(ep.place ? { place: ep.place } : { sea: ep.sea }), episodes: [ep.n, ep.n] })
+}
+for (const s of stops) if (s.place && !all[s.place]) throw new Error(`local sem posição em geo/places.json: ${s.place}`)
+
+// ---------- Canais da Reverse Mountain (public/terrain/canals.json, do build-terrain) ----------
+// Linha do meio de cada canal, do topo até o mar, com a altura da água: [x, z, y].
+const canalData = JSON.parse(await readFile('public/terrain/canals.json', 'utf8'))
+const canalLine = (c) => {
+  const v = c.verts, pts = []
+  for (let k = 0; k + 9 < v.length; k += 10) pts.push([(v[k] + v[k + 5]) / 2, (v[k + 2] + v[k + 7]) / 2, (v[k + 1] + v[k + 6]) / 2])
+  return pts
+}
+const DOWN = canalLine(canalData.canals.find((c) => c.down)) // desce para a Grand Line (Paradise)
+// Canal que sobe do East Blue: o que termina mais perto de Loguetown.
+const UP_EB = canalData.canals
+  .filter((c) => !c.down)
+  .map(canalLine)
+  .sort((a, b) => dist(a.at(-1).slice(0, 2), all.loguetown.town) - dist(b.at(-1).slice(0, 2), all.loguetown.town))[0]
+/** Ponto no mar em frente à boca do canal (`k` unidades para fora). */
+const mouthOut = (line, k) => {
+  const end = line.at(-1), prev = line.at(-6)
+  const d = dist(end.slice(0, 2), prev.slice(0, 2))
+  return [end[0] + ((end[0] - prev[0]) / d) * k, end[1] + ((end[1] - prev[1]) / d) * k]
+}
+
+// ---------- Portos ----------
+// O porto é o ponto de mar mais próximo da cidade com folga PORT_CLEAR da costa. A parada da
+// Reverse Mountain é no mar ao pé das cachoeiras (Twin Cape, onde está o Laboon).
+const port = {}
+for (const s of stops) {
+  if (!s.place || port[s.place]) continue
+  const from = s.place === 'reverse-mountain' ? mouthOut(DOWN, PORT_CLEAR + 1.5) : all[s.place].town
+  port[s.place] = toWorld(...nearestWater(from, PORT_CLEAR))
+}
+
+// ---------- Pernas ----------
+/** Caminho pelo mar de `a` a `b` (A* → enxuga → arredonda → reamostra), pontos [x, z]. */
+function seaPath(a, b) {
+  const raw = simplify(astar(nearestWater(a, MIN_CLEAR), nearestWater(b, MIN_CLEAR))).map(([x, y]) => toWorld(x, y))
+  raw[0] = a
+  raw[raw.length - 1] = b
+  return chaikin(raw)
+}
+
+/**
+ * Travessia da Reverse Mountain: do East Blue até a boca do canal, sobe por ele até a piscina do
+ * topo e desce pelo canal das cachoeiras até o mar da Grand Line. Pontos [x, z, y] (y = altura da água).
+ */
+const flat = (pts) => pts.map(([x, z]) => [x, z, 0])
+function reverseMountain(a, b) {
+  const approach = mouthOut(UP_EB, 2.5)
+  return [
+    ...flat(seaPath(a, approach)),
+    ...[...UP_EB].reverse(),
+    ...DOWN,
+    ...flat(seaPath(mouthOut(DOWN, 2.5), b)),
+  ]
+}
+
+/**
+ * Passagem para a Ilha dos Tritões: o navio vai até a Red Line da borda leste, mergulha por baixo
+ * dela (y até -DIVE) e sai do outro lado do mapa (borda oeste), na mesma altura. Devolve as duas
+ * partes. Pontos [x, z, y].
+ */
+const DIVE = 3
+function underRedLine(a, b) {
+  const z = b[1]
+  const [, cy] = toCell([0, z])
+  let xr = GW - 1, xl = 0
+  while (xr > 0 && clearAt(xr, cy) < WANT_CLEAR) xr--
+  while (xl < GW - 1 && clearAt(xl, cy) < WANT_CLEAR) xl++
+  const east = toWorld(xr, cy), west = toWorld(xl, cy)
+  return [
+    [...flat(seaPath(a, east)), [WORLD_W / 2, z, -DIVE]],
+    [[-WORLD_W / 2, z, -DIVE], ...flat(seaPath(west, b))],
+  ]
+}
+
+/** Divide um caminho na metade do comprimento (parada no mar). */
+function splitHalf(pts) {
+  const half = pathLength(pts) / 2
+  let acc = 0
+  for (let i = 1; i < pts.length; i++) {
+    const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])
+    if (acc + d >= half) {
+      const mid = lerp(pts[i - 1], pts[i], (half - acc) / d)
+      return [[...pts.slice(0, i), mid], [mid, ...pts.slice(i)]]
+    }
+    acc += d
+  }
+}
+
+// Cada perna é calculada uma vez por par de locais (a volta reaproveita a ida, invertida).
+const cache = new Map()
+function legPath(from, to) {
+  const key = `${from}>${to}`
+  if (cache.has(key)) return cache.get(key)
+  const back = cache.get(`${to}>${from}`)
+  let parts
+  if (back) parts = [...back].reverse().map((p) => [...p].reverse())
+  else if (to === 'reverse-mountain') parts = [reverseMountain(port[from], port[to])]
+  else if (to === 'fishman-island') parts = underRedLine(port[from], port[to])
+  else parts = [seaPath(port[from], port[to])]
+  cache.set(key, parts)
+  return parts
+}
+
+/** Junta as partes numa perna: pontos reamostrados e `jump` = índice onde o navio troca de borda. */
+function makeLeg(from, to, parts) {
+  const sampled = parts.map((p) => resample(p).map(r2))
+  const points = sampled.flat()
+  const leg = { from, to, length: +sampled.reduce((s, p) => s + pathLength(p), 0).toFixed(1), points }
+  if (sampled.length > 1) leg.jump = sampled[0].length
+  return leg
+}
+
+const legs = []
+for (let i = 0; i < stops.length - 1; i++) {
+  const a = stops[i], b = stops[i + 1]
+  if (b.sea) continue // feita junto com a perna seguinte
+  if (a.sea) {
+    const [before, after] = a.sea
+    const parts = legPath(before, after)
+    if (parts.length > 1) throw new Error(`parada no mar numa travessia: ${a.key}`)
+    const [p1, p2] = splitHalf(parts[0])
+    a.at = r2(p1.at(-1).slice(0, 2))
+    legs.push(makeLeg(before, a.key, [p1]), makeLeg(a.key, b.place, [p2]))
+  } else legs.push(makeLeg(a.place, b.place, legPath(a.place, b.place)))
+}
+for (const s of stops) if (s.place) s.at = r2(port[s.place])
+
+// Conferência: nenhum ponto no mar pode chegar a menos de MIN_CLEAR da costa (os canais e o
+// mergulho por baixo da Red Line, os pontos com y ≠ 0, ficam de fora).
+for (const l of legs) {
+  let worst = Infinity, at = null
+  l.points.forEach((p, i) => {
+    if ((p[2] ?? 0) !== 0) return
+    const c = clearAtWorld(p)
+    if (c < worst) { worst = c; at = i }
+  })
+  if (worst < MIN_CLEAR - 0.15) console.warn(`  AVISO ${l.from} → ${l.to}: ponto ${at} a ${worst.toFixed(2)} da costa (${l.points[at]})`)
+}
+for (const l of legs) console.log(`${l.from} → ${l.to}: ${l.length} unidades, ${l.points.length} pontos${l.jump ? ', troca de borda' : ''}`)
+
+const out = {
+  places: Object.fromEntries(Object.keys(port).map((id) => [id, { name: all[id].name, town: r2(all[id].town), port: r2(port[id]) }])),
+  // stops[i] → stops[i + 1] = legs[i]
+  stops: stops.map(({ place, sea, episodes, at }) => ({ ...(place ? { place } : { sea }), episodes, at })),
+  legs,
+}
+await writeFile('src/data/route.json', JSON.stringify(out) + '\n')
+console.log(`src/data/route.json: ${out.stops.length} paradas, ${legs.length} pernas`)
 console.log(`MAX_CLEAR da textura: ${MAX_CLEAR.toFixed(2)} unidades`)

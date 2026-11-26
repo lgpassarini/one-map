@@ -168,6 +168,23 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
 - **Escopo:** dados completos (1180) de uma vez; nomes das ilhas, rota, interface e navio por
   fatias de saga, começando pelo East Blue.
 
+## Rota (passo 3, 2026-11-26)
+- **Paradas pela ordem dos episódios:** uma parada por trecho de episódios seguidos no mesmo local
+  (52 paradas, 51 pernas, de Foosha a Elbaf), gerada pelo `build-route` a partir do
+  `episodes.json`. Um local que volta (Water 7, Long Ring, Impel Down, Amazon Lily, Sabaody, Wano)
+  é outra parada no mesmo porto; a volta reaproveita o caminho da ida, invertido.
+- **Mar = meio do caminho:** os 4 trechos no mar param na metade (em comprimento) do caminho entre
+  o local de antes e o de depois.
+- **Reverse Mountain:** o navio vai até a boca do canal do East Blue, sobe por ele até a piscina
+  do topo e desce pelo canal das cachoeiras; a parada (Twin Cape, Laboon) fica no mar ao pé das
+  cachoeiras. Os pontos do canal levam a altura da água (`[x, z, y]`).
+- **Ilha dos Tritões:** a perna Sabaody → Ilha dos Tritões vai até a Red Line da borda leste na
+  altura da ilha, mergulha (y até −3) e sai da borda oeste; `jump` marca onde o navio troca de borda.
+- **Skypiea** fica, por enquanto, no mar sob o marcador da nuvem (subida ao céu fica para os
+  locais especiais).
+- **Conferência:** o build avisa se algum ponto no mar fica a menos de `MIN_CLEAR` da costa;
+  `node scripts/route-overlay.mjs [x0,z0,x1,z1 nome]` desenha a rota sobre o mapa.
+
 ## Stack
 - Vite + React + TypeScript + React Three Fiber (Three.js) + drei.
 - Scripts Node para extrair contornos e montar os dados.

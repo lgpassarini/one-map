@@ -43,7 +43,5 @@
     "wano": {"name": {"pt": "Wano", "en": "Wano Country"}, "region": "new-world", "px": [1521,193]},
     "egghead": {"name": {"pt": "Egghead", "en": "Egghead"}, "region": "new-world", "px": [1621,293]},
     "elbaf": {"name": {"pt": "Elbaf", "en": "Elbaf"}, "region": "new-world", "px": [1745,212]}
-  },
-  "_comment_route": "Ordem da viagem (protótipo: os três primeiros locais do East Blue).",
-  "route": ["foosha", "shells-town", "orange-town"]
+  }
 }
