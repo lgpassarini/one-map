@@ -6,6 +6,10 @@ import route from '../data/route.json'
 import { cameraState } from './cameraState'
 import { shipState } from './shipState'
 import { toonRamp } from './toon'
+import { buildMerry } from './merryModel'
+import { finishParts, layer, lineMaterial, newParts, rect } from './shipParts'
+import { shipSize, type ShipModelId } from './shipModels'
+import { buildSunny } from './sunnyModel'
 import { createTrail } from './Trail'
 
 // Protótipo do navio: um bote provisório que faz a rota de geo/places.json em vai e volta
@@ -29,9 +33,61 @@ const GROW_BEFORE = 0.7 // s antes de chegar em que o navio começa a voltar ao 
 const START_T = Number(new URLSearchParams(window.location.search).get('shipt')) || 0
 const WARMUP = 3 // s simulados antes do primeiro quadro quando ?shipt é usado
 
-type Trip = { curve: THREE.CatmullRomCurve3; reverse: boolean; duration: number }
+/** Uma viagem entre dois portos. `start` é onde ela começa na rota inteira (ida e volta), em unidades. */
+type Trip = { curve: THREE.CatmullRomCurve3; reverse: boolean; duration: number; length: number; start: number }
 
-function buildTrips(): Trip[] {
+/**
+ * Por onde o navio anda: a rota dos portos (geo/places.json) ou, enquanto só ela existe, um
+ * circuito oval em mar aberto (centro, raio em x e em z) para ver outros navios em outros mares.
+ */
+export type Course = 'rota' | { center: [number, number]; rx: number; rz: number }
+
+function buildTrips(course: Course): Trip[] {
+  const trips = course === 'rota' ? buildLegs() : buildLoop(course)
+  let start = 0
+  for (const t of trips) {
+    t.length = t.curve.getLength()
+    t.start = start
+    start += t.length
+  }
+  return trips
+}
+
+/**
+ * Ponto e direção (no sentido da viagem) a `s` unidades do início da rota inteira. A rota é um
+ * ciclo (Foosha → … → Orange Town → … → Foosha), então `s` fora da faixa dá a volta.
+ */
+function pathAt(trips: Trip[], s: number, p: THREE.Vector3, tan: THREE.Vector3) {
+  const last = trips[trips.length - 1]
+  const total = last.start + last.length
+  s = ((s % total) + total) % total
+  const trip = trips.find((t) => s < t.start + t.length) ?? last
+  const local = THREE.MathUtils.clamp((s - trip.start) / trip.length, 0, 1)
+  const along = trip.reverse ? 1 - local : local
+  trip.curve.getPointAt(along, p)
+  trip.curve.getTangentAt(along, tan)
+  if (trip.reverse) tan.negate()
+}
+
+function buildLoop({ center: [cx, cz], rx, rz }: Exclude<Course, 'rota'>): Trip[] {
+  const N = 16
+  const pts = Array.from({ length: N }, (_, i) => {
+    const a = (-i / N) * Math.PI * 2 // anti-horário visto de cima
+    return new THREE.Vector3(cx + rx * Math.cos(a), 0, cz + rz * Math.sin(a))
+  })
+  const curve = new THREE.CatmullRomCurve3(pts, true, 'centripetal')
+  curve.arcLengthDivisions = 400
+  const duration = THREE.MathUtils.clamp(curve.getLength() / SPEED, MIN_TRIP, MAX_TRIP)
+  return [{ curve, duration, reverse: false, length: 0, start: 0 }]
+}
+
+/** Ponto de partida de um percurso (para posicionar a câmera). */
+export function courseStart(course: Course): [number, number] {
+  const p = buildTrips(course)[0].curve.getPointAt(0)
+  return [p.x, p.z]
+}
+
+function buildLegs(): Trip[] {
   const legs = route.legs.map((leg) => {
     const curve = new THREE.CatmullRomCurve3(
       leg.points.map(([x, z]) => new THREE.Vector3(x, 0, z)),
@@ -40,7 +96,7 @@ function buildTrips(): Trip[] {
     )
     curve.arcLengthDivisions = Math.max(200, leg.points.length * 8)
     const duration = THREE.MathUtils.clamp(leg.length / SPEED, MIN_TRIP, MAX_TRIP)
-    return { curve, duration }
+    return { curve, duration, length: 0, start: 0 }
   })
   // Ida pelas pernas e volta pelas mesmas, de trás para frente.
   return [...legs.map((l) => ({ ...l, reverse: false })), ...[...legs].reverse().map((l) => ({ ...l, reverse: true }))]
@@ -64,8 +120,7 @@ const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(b - a), Math.cos
 const wave = (x: number, z: number, t: number) =>
   0.5 * Math.sin(0.9 * x + 1.3 * t) + 0.35 * Math.sin(1.1 * z - 1.7 * t + 1.0) + 0.25 * Math.sin(0.6 * (x + z) + 2.1 * t)
 
-// ---------- Modelo ----------
-const LINE_COLOR = '#3b2a20' // o mesmo do contorno do terreno
+// ---------- Modelo (bote) ----------
 
 /** Forma do casco vista de cima (comprimento 1 em y, proa em +y), escalada por `k`. */
 function hullShape(k: number, w = 1) {
@@ -77,49 +132,8 @@ function hullShape(k: number, w = 1) {
   return s
 }
 
-const rect = (x0: number, y0: number, x1: number, y1: number) => {
-  const s = new THREE.Shape()
-  s.moveTo(x0, y0)
-  s.lineTo(x1, y0)
-  s.lineTo(x1, y1)
-  s.lineTo(x0, y1)
-  return s
-}
-
-type Parts = { pos: number[]; col: number[]; lines: number[] }
-
-/**
- * Camada extrudada como as do terreno: topo na cor `top`, parede 0,72× mais escura, e o
- * contorno do topo em `lines`. A forma (x, y) vira (x, -z): proa para -z.
- */
-function layer(shape: THREE.Shape, y0: number, y1: number, top: string, parts: Parts) {
-  const geo = new THREE.ExtrudeGeometry(shape, { depth: y1 - y0, bevelEnabled: false, curveSegments: 10 })
-  geo.rotateX(-Math.PI / 2)
-  geo.translate(0, y0, 0)
-  const p = geo.attributes.position.array // ExtrudeGeometry já vem sem índice
-  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), n = new THREE.Vector3()
-  const cTop = new THREE.Color(top)
-  const cWall = cTop.clone().multiplyScalar(0.72)
-  for (let i = 0; i < p.length; i += 9) {
-    a.fromArray(p, i)
-    b.fromArray(p, i + 3)
-    c.fromArray(p, i + 6)
-    n.subVectors(c, b).cross(a.sub(b)).normalize()
-    const col = Math.abs(n.y) > 0.5 ? cTop : cWall
-    for (let k = 0; k < 9; k++) parts.pos.push(p[i + k])
-    for (let k = 0; k < 3; k++) parts.col.push(col.r, col.g, col.b)
-  }
-  // Contorno no alto da camada (como as linhas dos platôs).
-  for (const ring of [shape.getPoints(10), ...shape.holes.map((h) => h.getPoints(10))]) {
-    for (let i = 0; i < ring.length; i++) {
-      const u = ring[i], v = ring[(i + 1) % ring.length]
-      parts.lines.push(u.x, y1 + 0.004, -u.y, v.x, y1 + 0.004, -v.y)
-    }
-  }
-}
-
 function buildDinghy() {
-  const parts: Parts = { pos: [], col: [], lines: [] }
+  const parts = newParts()
   // Casco em dois degraus: fundo (metade dentro d'água) e borda mais larga, oca por dentro.
   layer(hullShape(0.86, 0.92), -0.1, 0.07, '#c98a4b', parts)
   const rim = hullShape(1)
@@ -131,15 +145,8 @@ function buildDinghy() {
   layer(rect(-0.03, 0.1, 0.03, 0.16), 0.1, 0.92, '#7a4b2a', parts)
 
   const gradientMap = toonRamp()
-  const g = new THREE.BufferGeometry()
-  g.setAttribute('position', new THREE.Float32BufferAttribute(parts.pos, 3))
-  g.setAttribute('color', new THREE.Float32BufferAttribute(parts.col, 3))
-  g.computeVertexNormals() // não indexada → normais por face (chapado, como o terreno)
-  const body = new THREE.Mesh(g, new THREE.MeshToonMaterial({ vertexColors: true, gradientMap }))
-  const lineMat = new THREE.LineBasicMaterial({ color: LINE_COLOR, transparent: true, opacity: 0.7 })
-  const lg = new THREE.BufferGeometry()
-  lg.setAttribute('position', new THREE.Float32BufferAttribute(parts.lines, 3))
-  const lines = new THREE.LineSegments(lg, lineMat)
+  const [body, lines] = finishParts(parts)
+  const lineMat = lineMaterial()
 
   // Vela: triângulo estufado (a barriga dá os tons do toon shading), preso atrás do mastro.
   const H = 0.62, B = 0.46 // altura e base (até a popa)
@@ -187,18 +194,34 @@ function buildDinghy() {
 
   const group = new THREE.Group()
   group.add(body, lines, sail, sailLines, flag)
-  return { group, flag }
+  return { group, flag: flag as THREE.Object3D, flagYaw: -Math.PI / 2 }
 }
 
-export function Ship() {
-  const trips = useMemo(() => buildTrips(), [])
-  const dinghy = useMemo(() => buildDinghy(), [])
+/** Navio feito à mão para cada modelo (o Sunny e o Merry usam a mesma interface do bote). */
+const BUILDERS: Record<ShipModelId, () => ReturnType<typeof buildDinghy>> = {
+  bote: buildDinghy,
+  merry: buildMerry,
+  sunny: buildSunny,
+}
+
+type ShipProps = {
+  model?: ShipModelId
+  /** Segundos adiantados na rota (para vários navios em pontos diferentes). */
+  phase?: number
+  /** O principal: a câmera acompanha e o minimapa mostra este. */
+  lead?: boolean
+  course?: Course
+}
+
+export function Ship({ model = 'bote', phase = 0, lead = true, course = 'rota' }: ShipProps) {
+  const trips = useMemo(() => buildTrips(course), [course])
+  const body = useMemo(() => BUILDERS[model](), [model])
   const trail = useMemo(() => createTrail(), [])
-  const flag = useRef(dinghy.flag)
   const ship = useRef<THREE.Group>(null)
+  const scale = shipSize(model)
   const st = useRef({
     trip: 0,
-    t: START_T - PAUSE,
+    t: START_T - PAUSE + phase,
     clock: 0,
     last: new THREE.Vector3(),
     heading: 0,
@@ -207,7 +230,7 @@ export function Ship() {
     motion: 0,
     init: false,
   })
-  const tmp = useMemo(() => ({ p: new THREE.Vector3(), tan: new THREE.Vector3() }), [])
+  const tmp = useMemo(() => ({ p: new THREE.Vector3(), tan: new THREE.Vector3(), ahead: new THREE.Vector3() }), [])
 
   const warmed = useRef(false)
 
@@ -223,13 +246,11 @@ export function Ship() {
     }
     const sailing = s.t >= 0
     const u = sailing ? travel(s.t / trip.duration) : 0
-    const along = trip.reverse ? 1 - u : u
-    trip.curve.getPointAt(along, tmp.p)
+    const pos = trip.start + u * trip.length
+    pathAt(trips, pos, tmp.p, tmp.tan)
 
-    // Direção: navegando, olha um pouco à frente na curva; parado, vira devagar para a próxima saída.
-    const ahead = trip.reverse ? Math.max(0, along - 0.02) : Math.min(1, along + 0.02)
-    trip.curve.getTangentAt(sailing ? ahead : trip.reverse ? 1 : 0, tmp.tan)
-    if (trip.reverse) tmp.tan.negate()
+    // Direção: navegando, olha um pouco à frente na rota; parado, vira devagar para a próxima saída.
+    if (sailing) pathAt(trips, pos + 0.02 * trip.length, tmp.ahead, tmp.tan)
     const want = Math.atan2(-tmp.tan.x, -tmp.tan.z)
     if (!s.init) s.heading = want
     const before = s.heading
@@ -238,7 +259,7 @@ export function Ship() {
 
     // Câmera acompanha enquanto o navio está na área vista (se o usuário levou a vista para
     // longe, ela fica onde está).
-    if (s.init && controls) {
+    if (lead && s.init && controls) {
       const dx = tmp.p.x - s.last.x, dz = tmp.p.z - s.last.z
       const [tx, tz] = cameraState.target
       const [hw, hh] = cameraState.half
@@ -257,7 +278,7 @@ export function Ship() {
     s.size = damp(s.size, cruising ? SAIL_SCALE : 1, cruising ? 5 : 3.5, dt)
     s.motion = damp(s.motion, cruising ? 1 : 0, 3, dt)
     const minLen = camera.position.distanceTo(tmp.p) * MIN_SCREEN
-    const len = Math.max(SHIP_LEN * s.size, minLen)
+    const len = Math.max(SHIP_LEN * scale * s.size, minLen * scale)
 
     // Balanço na água: altura e inclinação vêm das ondas sob a proa, a popa e os lados.
     const fx = -Math.sin(s.heading), fz = -Math.cos(s.heading)
@@ -275,14 +296,17 @@ export function Ship() {
     g.position.set(tmp.p.x, heave, tmp.p.z)
     g.rotation.set(pitch, s.heading, roll, 'YXZ')
     g.scale.setScalar(len)
-    flag.current.rotation.y = -Math.PI / 2 + Math.sin(T * 7) * 0.3 // tremula
+    body.flag.rotation.y = body.flagYaw + Math.sin(T * 7) * 0.3 // tremula
 
     // Rastro na água a partir da popa, enquanto navega.
     const stern = { x: tmp.p.x - fx * len * 0.42, z: tmp.p.z - fz * len * 0.42 }
     trail.update(dt, sailing && s.motion > 0.05 ? stern : null, len)
 
-    shipState.pos = [tmp.p.x, tmp.p.z]
-    shipState.sailing = sailing
+    if (lead) {
+      shipState.pos = [tmp.p.x, tmp.p.z]
+      shipState.visible = true
+      shipState.sailing = sailing
+    }
   }
 
   useFrame((state, rawDt) => {
@@ -303,7 +327,7 @@ export function Ship() {
   return (
     <>
       <group ref={ship}>
-        <primitive object={dinghy.group} />
+        <primitive object={body.group} />
       </group>
       <primitive object={trail.mesh} />
     </>

@@ -102,6 +102,14 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
 - **Rastro, não efeitos de vento/espuma:** testamos esteira em V, ondinhas e espuma na proa e
   descartamos. Fica só um rastro que segue o caminho do barco desde a popa, no estilo da costa
   (miolo em água rasa, bordas de espuma recortada), que alarga, afina na ponta e some em ~4 s.
+- **Fora do mapa por enquanto (2026-11-25):** os navios ficam prontos no código, mas o mapa abre sem
+  navio até existir a troca por episódio; `?navios` mostra o protótipo em dev. Na bandeira e nos
+  símbolos (Jolly Roger, carneiro, leão, cúpulas) a fidelidade às referências importa; a estrutura
+  do casco pode ser aproximada.
+- **Merry e Sunny feitos à mão, não baixados:** modelos do Sketchfab serviram só de referência
+  visual (o processo e a geometria são nossos); um modelo marcado como NoAI foi descartado até como
+  referência. Mesmo método do bote (camadas extrudadas), mais peças arredondadas (carneiro, leão,
+  mastros) com contorno "casco invertido" e velas/bandeiras com o Jolly Roger desenhado em canvas.
 - **Porto:** a 2,1 unidades da costa, para o navio parado (e girando) não encostar na praia.
 - Muda conforme o episódio: bote a remo, depois o Going Merry (de Syrup Village até o fim de
   Enies Lobby), depois o Thousand Sunny.

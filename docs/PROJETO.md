@@ -55,8 +55,12 @@ Resumo; a lista completa e o porquê estão em [DECISOES.md](DECISOES.md).
 
 ## Onde estamos
 
-Versão 1 (tag `v1.0.0`) + protótipo do navio: um bote provisório faz Foosha → Shells Town →
-Orange Town em vai e volta, parando em cada porto, com a câmera acompanhando. Ainda sem episódios.
+Versão 1 (tag `v1.0.0`) + navios prontos, mas **fora do mapa por enquanto**. Bote, Going Merry e
+Thousand Sunny estão modelados (bandeira, Jolly Roger, carneiro, leão e cúpulas conferidos com as
+referências do usuário) e o protótipo de navegação funciona, mas o mapa abre sem navio até existir a
+troca por episódio. Dev: `?navios` mostra o protótipo (bote na rota Foosha → Shells Town → Orange
+Town; Merry e Sunny dando voltas no North e no South Blue; `?seguir=bote|merry|sunny`). Ainda sem
+episódios.
 
 | Área | Estado |
 | --- | --- |
@@ -66,7 +70,7 @@ Orange Town em vai e volta, parando em cada porto, com a câmera acompanhando. A
 | Qualidade móvel | Detecção automática; não testado num tablet real |
 | Pipeline de geografia | Pronto (`scripts/`) |
 | Rota do navio | Protótipo: 3 locais do East Blue (`geo/places.json` → `scripts/build-route.mjs`) |
-| Navio | Bote provisório (`src/world/Ship.tsx`) no estilo do terreno; acelera/freia, balança nas ondas, encolhe navegando, deixa rastro na água (`Trail.ts`) |
+| Navio | Modelos prontos: bote, Going Merry e Thousand Sunny feitos em código no estilo do terreno (`Ship.tsx`, `merryModel.ts`, `sunnyModel.ts`, peças e Jolly Roger em `shipParts.ts`); acelera/freia, balança nas ondas, encolhe navegando, deixa rastro (`Trail.ts`). **Fora do mapa** (só com `?navios`) até a troca por episódio |
 | Dados de episódios | Não começado |
 | Barra de episódios / lista | Não começado |
 | Zoom detalhado de ilha | Não começado |
@@ -93,7 +97,8 @@ Orange Town em vai e volta, parando em cada porto, com a câmera acompanhando. A
 2. Dados: ~1150 episódios do anime + One Pace (links, sinopse), tradução PT.
 3. Locais: nomes/posições das ilhas (dos prints), episódio → local.
 4. Barra `< Arco · Ep >`, lista, painel da ilha, progresso, exportar/importar.
-5. Modelos do navio e troca conforme o episódio; zoom da câmera em viagens longas.
+5. Navio de volta ao mapa: troca bote → Merry → Sunny conforme o episódio (tirar o `?navios` e o
+   protótipo de voltas do `World.tsx`); zoom da câmera em viagens longas.
 6. Zoom detalhado em 1 ilha do East Blue.
 7. Dropdown de idioma.
 8. Hospedagem e teste em tablet.
@@ -108,4 +113,5 @@ Em aberto com o usuário: prints da Grand Line mais aproximados (3–4 por faixa
 - Stack: Vite + React + TypeScript + React Three Fiber + drei; scripts Node (sharp, d3-contour)
 - Rodar: `npm install`, `npm run dev`; mapa: `npm run geo:extract` → `npm run geo:terrain` (já roda
   a rota; só a rota: `npm run geo:route`) (`npm run geo:align` antes, se trocar um print);
-  dev: `?quality=low|high`, `?at=x,y&dist=n`, `?shipt=s` (adianta a animação do navio)
+  dev: `?quality=low|high`, `?at=x,y&dist=n`, `?navios` (mostra os navios), `?shipt=s` (adianta a
+  animação do navio); navios de perto: `npm run dev` → `/navios.html?navio=merry|sunny` (`&spin=0&yaw=graus&d=dist&ty=altura` para ângulo fixo)

@@ -60,6 +60,7 @@ export function Minimap() {
 
       // Navio: ponto com borda escura.
       const [sx, sz] = shipState.pos
+      if (!shipState.visible) return
       ctx.beginPath()
       ctx.arc((sx + WORLD_W / 2) * s, (sz + WORLD_H / 2) * s, 3.5 * dpr, 0, Math.PI * 2)
       ctx.fillStyle = '#ffd34d'
