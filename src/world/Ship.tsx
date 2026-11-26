@@ -20,8 +20,7 @@ import { createTrail } from './Trail'
 // toon shading e contorno fino no alto de cada camada.
 
 const SHIP_LEN = 2.7 // comprimento do navio parado (peça de tabuleiro)
-const TURN_MAX = 1.1 // rad/s: giro mais rápido do navio (navegando)
-const TURN_MAX_STOPPED = 0.45 // rad/s: parado, termina o giro devagar
+const TURN_STOPPED = 0.6 // rad/s: giro mais rápido do navio parado (vira devagar para a saída)
 const SAIL_SCALE = 0.45 // navegando, encolhe
 const MIN_SCREEN = 0.022 // comprimento mínimo = distância da câmera × isto (não some ao afastar)
 const PAUSE = 1.8 // s parado em cada porto
@@ -236,8 +235,8 @@ export function Ship({ model = 'bote', phase = 0, lead = true, course = 'rota' }
     clock: 0,
     last: new THREE.Vector3(),
     heading: 0,
-    target: 0, // direção que o navio procura (a da rota navegando; parado, a última)
-    angVel: 0, // velocidade de giro atual (rad/s)
+    angVel: 0, // velocidade de giro parado (rad/s)
+    left: false, // já partiu nesta viagem (apontado para a saída)
     turnRate: 0,
     size: 1,
     motion: 0,
@@ -256,27 +255,34 @@ export function Ship({ model = 'bote', phase = 0, lead = true, course = 'rota' }
       s.t -= trip.duration + PAUSE
       s.trip = (s.trip + 1) % trips.length
       trip = trips[s.trip]
+      s.left = false
     }
-    const sailing = s.t >= 0
+    // Só parte depois de apontar para a saída: a pausa se estende enquanto o navio termina de virar.
+    if (s.t > 0 && !s.left && s.init) {
+      pathAt(trips, trip.start, tmp.p, tmp.tan)
+      if (Math.abs(angleDiff(s.heading, Math.atan2(-tmp.tan.x, -tmp.tan.z))) > 0.12) s.t = 0
+      else s.left = true
+    }
+    const sailing = s.t > 0
     const u = sailing ? travel(s.t / trip.duration) : 0
     const pos = trip.start + u * trip.length
     pathAt(trips, pos, tmp.p, tmp.tan)
 
-    // Direção: navegando, olha um pouco à frente na rota. O giro tem velocidade angular limitada
-    // e amortecida (sem viradas bruscas nas curvas do fim da viagem). Parado, o navio não vira
-    // para a próxima saída: só termina, devagar, o giro que já vinha fazendo — uma vez.
+    // Direção: navegando, a proa segue a rota (olha um pouco à frente). Parado, vira devagar,
+    // com velocidade de giro limitada, para a próxima saída — uma vez só, e só parte apontado
+    // para ela (ver `left` acima).
     if (sailing) pathAt(trips, pos + 0.02 * trip.length, tmp.ahead, tmp.tan)
     const want = Math.atan2(-tmp.tan.x, -tmp.tan.z)
-    if (!s.init) {
-      s.heading = want
-      s.target = want
-    }
-    if (sailing) s.target = want
+    if (!s.init) s.heading = want
     const before = s.heading
-    const max = sailing ? TURN_MAX : TURN_MAX_STOPPED
-    const wantRate = THREE.MathUtils.clamp(angleDiff(s.heading, s.target) * 2.2, -max, max)
-    s.angVel = damp(s.angVel, wantRate, sailing ? 4 : 2, dt)
-    s.heading += s.angVel * dt
+    if (sailing) {
+      s.heading += angleDiff(s.heading, want) * (1 - Math.exp(-dt * 5))
+      s.angVel = 0
+    } else {
+      const rate = THREE.MathUtils.clamp(angleDiff(s.heading, want) * 1.5, -TURN_STOPPED, TURN_STOPPED)
+      s.angVel = damp(s.angVel, rate, 2, dt)
+      s.heading += s.angVel * dt
+    }
     s.turnRate = damp(s.turnRate, angleDiff(before, s.heading) / Math.max(dt, 1e-3), 6, dt)
 
     // Câmera acompanha enquanto o navio está na área vista (se o usuário levou a vista para
