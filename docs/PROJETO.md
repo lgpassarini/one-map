@@ -86,12 +86,14 @@ seguem fora do mapa normal até a troca por episódio. Na revisão com o usuári
 sem giro: o navio parado (agora 2,7 unidades) fica como chegou, vira no lugar uma vez, devagar,
 para sair, e navegando a proa mira 1,5 unidade à frente no caminho (aprovado em 26/11/2026).
 
-**Interface (passo 4, 26/11/2026, em revisão):** barra `< Arco · Ep N >` no topo
+**Interface pronta (passo 4, aprovada pelo usuário em 26/11/2026):** barra `< Arco · Ep N >` no topo
 (`src/ui/EpisodeBar.tsx`) com o local e as tags embaixo, setas e ← →, e lista de episódios por arco
 com busca. O episódio fica em `src/state/episode.ts` (localStorage, `?ep=N`; 0 = Partida em
 Foosha). O bote voltou ao mapa: fica na parada do episódio e, ao escolher outro, navega pela rota
 até lá (ida ou volta, direto pelas paradas do meio, 2,2–7 s), com a barra travada e a câmera
-acompanhando. Exportar/importar arquivo saiu do plano.
+acompanhando. Exportar/importar arquivo saiu do plano. Na revisão, a barra virou uma placa de
+madeira pendurada por cordas no topo da tela (só `Arco · Ep N` e as tags; balança de leve ao trocar
+de episódio; 60% de opacidade sem uso), e a lista ganhou moldura de madeira e rolagem no tema.
 
 | Área | Estado |
 | --- | --- |
@@ -102,7 +104,7 @@ acompanhando. Exportar/importar arquivo saiu do plano.
 | Pipeline de geografia | Pronto (`scripts/`). Em 26/11 entraram as ilhas de neve (Drum, Balloon Terminal, Baltigo), as do Calm Belt (Amazon Lily, Impel Down) e Loguetown (caía fora da área do East Blue); ilhas cortadas por rótulos foram consertadas (`FIX_LABELS` em `merge-regions.mjs`: Dressrosa, Alabasta, Wano, Water 7, Loguetown, Conomi...) |
 | Rota do navio | Pronta: 52 paradas na ordem dos episódios, com as travessias da Reverse Mountain e da Ilha dos Tritões (`scripts/build-route.mjs` → `src/data/route.json`; conferência com `node scripts/route-overlay.mjs`) |
 | Navio | Modelos prontos: bote, Going Merry e Thousand Sunny feitos em código no estilo do terreno (`Ship.tsx`, `merryModel.ts`, `sunnyModel.ts`, peças e Jolly Roger em `shipParts.ts`); acelera/freia, balança nas ondas, encolhe navegando, deixa rastro (`Trail.ts`). No mapa, o bote viaja até o episódio escolhido; a troca bote → Merry → Sunny é o passo 5 (`?navios` mostra o protótipo dos três) |
-| Barra de episódios | Em revisão: `EpisodeBar.tsx` + `state/episode.ts` |
+| Barra de episódios | Pronta: placa de madeira pendurada (`EpisodeBar.tsx`) + estado do episódio (`state/episode.ts`) |
 | Dados de episódios | Pronto e aprovado: `src/data/episodes.json` (`scripts/fetch-episodes.mjs`, `scripts/build-episodes.mjs`, locais em `geo/episode-places.json`) |
 | Nomes no mapa | Os 42 locais com nome no 3D, no estilo dos rótulos dos prints (Alegreya negrito via @fontsource, letra escura com contorno branco, X de mapa do tesouro, anticolisão; `PlaceLabels.tsx`; tecla N liga/desliga, salvo em `mapSettings.ts`); posições em `geo/places.json`, conferência com `node scripts/places-overlay.mjs` |
 | Barra de episódios / lista | Não começado |
@@ -145,9 +147,9 @@ Plano fechado em 26/11/2026 (detalhes em DECISOES.md, "Dados de episódios e loc
    nomes no mapa; feito de uma vez para todas as sagas.
 3. ~~**Rota**~~ — feito (26/11/2026): 52 paradas pela ordem dos episódios, de Foosha a Elbaf,
    com as duas travessias.
-4. **Interface (em revisão):** barra `< Arco · Ep >` e lista de episódios, progresso salvo, navio
-   viajando até o episódio escolhido. Exportar/importar foi descartado.
-5. **Navio navegando:** troca bote → Merry → Sunny conforme o episódio (tirar o `?navios` e o
+4. ~~**Interface**~~ — feito (26/11/2026): placa `< Arco · Ep >`, lista de episódios, progresso
+   salvo, navio viajando até o episódio escolhido. Exportar/importar foi descartado.
+5. **Navio navegando (próximo):** troca bote → Merry → Sunny conforme o episódio (tirar o `?navios` e o
    protótipo de voltas do `World.tsx`); zoom da câmera em viagens longas.
 6. **Zoom da ilha** com animação e painel, começando por 1 ilha do East Blue.
 7. Depois: sinopses e dropdown de idioma (tradução PT), modelos das ilhas de filler e dos locais
