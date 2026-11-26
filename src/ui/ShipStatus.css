@@ -1,0 +1,150 @@
+@import './wood.css';
+
+/* Medalhão de madeira no canto inferior direito: âncora parado, bússola viajando. */
+.ship-status {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 10;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--grain);
+  border: 3px solid var(--wood-edge);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 160, 0.25),
+    inset 0 -3px 0 rgba(30, 15, 5, 0.3),
+    0 4px 0 var(--wood-edge),
+    0 8px 16px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+  user-select: none;
+  /* Parado fica meio transparente (como a placa sem uso); viajando, inteiro. */
+  opacity: 0.6;
+  transition: opacity 0.25s ease;
+}
+
+.ship-status:hover,
+.ship-status--sailing {
+  opacity: 1;
+}
+
+/* Os dois ícones ficam empilhados; a troca é um "pop" (um encolhe e gira, o outro cresce). */
+.ship-status__icon {
+  position: absolute;
+  inset: 7px;
+  display: grid;
+  place-items: center;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+
+.ship-status__icon svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ship-status__compass {
+  transform: scale(0.2) rotate(-90deg);
+  opacity: 0;
+}
+
+.ship-status--sailing .ship-status__anchor {
+  transform: scale(0.2) rotate(90deg);
+  opacity: 0;
+}
+
+.ship-status--sailing .ship-status__compass {
+  transform: none;
+  opacity: 1;
+}
+
+/* Âncora: contorno escuro largo por baixo do traço creme. */
+.ship-status__anchor path,
+.ship-status__anchor circle {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ship-status__anchor .ink * {
+  stroke: var(--wood-edge);
+  stroke-width: 7.5;
+}
+
+.ship-status__anchor .cream * {
+  stroke: var(--cream);
+  stroke-width: 3.6;
+}
+
+/* Bússola. */
+.compass-ring {
+  fill: var(--paper);
+  stroke: var(--wood-edge);
+  stroke-width: 3;
+}
+
+.compass-ticks path {
+  stroke: var(--ink-soft);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.compass-needle {
+  transform-origin: 24px 24px;
+  animation: compass-wobble 2.4s ease-in-out infinite;
+}
+
+.compass-needle path {
+  stroke: var(--wood-edge);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.needle-n {
+  fill: var(--accent);
+}
+
+.needle-s {
+  fill: var(--cream);
+}
+
+.needle-pin {
+  fill: var(--wood-edge);
+}
+
+/* A agulha procura o norte: balança de um lado para o outro, cada vez de um jeito. */
+@keyframes compass-wobble {
+  0% { transform: rotate(-24deg); }
+  22% { transform: rotate(18deg); }
+  45% { transform: rotate(-10deg); }
+  63% { transform: rotate(28deg); }
+  82% { transform: rotate(-6deg); }
+  100% { transform: rotate(-24deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compass-needle {
+    animation: none;
+  }
+}
+
+/* Só para leitores de tela. */
+.ship-status__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 600px) {
+  .ship-status {
+    right: 12px;
+    bottom: 12px;
+    width: 50px;
+    height: 50px;
+  }
+  .ship-status__icon {
+    inset: 5px;
+  }
+}

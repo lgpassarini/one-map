@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { detectQuality, QUALITY_SETTINGS } from './quality'
 import { EpisodeBar } from './ui/EpisodeBar'
 import { Minimap } from './ui/Minimap'
+import { ShipStatus } from './ui/ShipStatus'
 import { PlaceLabels } from './world/PlaceLabels'
 import { World } from './world/World'
 
@@ -16,6 +17,7 @@ export default function App() {
       <PlaceLabels />
       <Minimap />
       <EpisodeBar />
+      <ShipStatus />
     </>
   )
 }

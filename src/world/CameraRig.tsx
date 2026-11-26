@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import type { MapControls as MapControlsImpl } from 'three-stdlib'
+import { episodeStore } from '../state/episode'
 import { cameraState } from './cameraState'
 import { WORLD_H, WORLD_W } from './coords'
 
@@ -60,6 +61,9 @@ export function CameraRig({ start, distance = 50 }: { start: [number, number]; d
   useFrame(() => {
     const c = controls.current
     if (!c) return
+    // Viajando, a câmera fica travada no navio (o Ship.tsx a conduz): arrastar, zoom e giro param.
+    c.enabled = !episodeStore.get().sailing
+
     const t = c.target
     const dist = camera.position.distanceTo(t)
 

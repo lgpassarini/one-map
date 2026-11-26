@@ -1,25 +1,9 @@
-/* Barra de episódios no topo, com cara de placa de madeira de navio pirata: tábua com veios,
-   pregos nos cantos, letra creme com contorno escuro (como os rótulos do mapa, invertidos) e
-   sombra chapada (cartoon). A lista abre numa moldura de madeira com o miolo de pergaminho. */
+/* Barra de episódios no topo, com cara de placa de madeira de navio pirata (cores em wood.css):
+   tábua com veios, letra creme com contorno escuro (como os rótulos do mapa, invertidos) e sombra
+   chapada (cartoon). A lista abre numa moldura de madeira com o miolo de pergaminho. */
+@import './wood.css';
+
 .ep-bar-wrap {
-  --wood: #94603a;
-  --wood-light: #a8743f;
-  --wood-dark: #6e4426;
-  --wood-edge: #3b2414;
-  --cream: #fff1d2;
-  --cream-soft: #f0d6a2;
-  --paper: #f8ecd0;
-  --paper-dark: #ead6ab;
-  --ink: #2a1a0e;
-  --ink-soft: #6b4a30;
-  --accent: #9b1c1c;
-  /* Veios da madeira: linhas finas horizontais + listras largas mais claras + degradê da tábua. */
-  --grain:
-    repeating-linear-gradient(178.5deg, rgba(40, 20, 8, 0.13) 0 1px, transparent 1px 6px),
-    repeating-linear-gradient(181deg, rgba(255, 225, 170, 0.07) 0 3px, transparent 3px 17px),
-    radial-gradient(ellipse 34px 7px at 72% 62%, rgba(50, 25, 10, 0.28), transparent 70%),
-    radial-gradient(ellipse 22px 5px at 24% 30%, rgba(50, 25, 10, 0.22), transparent 70%),
-    linear-gradient(180deg, var(--wood-light), var(--wood) 50%, var(--wood-dark));
   position: fixed;
   top: 0;
   left: 50%;
