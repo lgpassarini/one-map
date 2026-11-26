@@ -21,7 +21,7 @@
     radial-gradient(ellipse 22px 5px at 24% 30%, rgba(50, 25, 10, 0.22), transparent 70%),
     linear-gradient(180deg, var(--wood-light), var(--wood) 50%, var(--wood-dark));
   position: fixed;
-  top: 14px;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -33,7 +33,12 @@
   font-family: var(--sans);
 }
 
+/* A placa fica pendurada por duas cordas que descem do topo da tela e balança um pouco quando o
+   episódio muda (o eixo do balanço é a ponta das cordas, fora da tela). */
 .ep-bar {
+  --hang: 30px; /* altura das cordas visível acima da placa */
+  position: relative;
+  margin-top: var(--hang);
   display: flex;
   align-items: stretch;
   gap: 6px;
@@ -46,6 +51,30 @@
     inset 0 -3px 0 rgba(30, 15, 5, 0.3),
     0 5px 0 var(--wood-edge),
     0 10px 20px rgba(0, 0, 0, 0.35);
+  transform-origin: 50% calc(-1 * var(--hang) - 20px);
+}
+
+/* Cordas: trança em diagonal com contorno escuro, terminando numa argola presa à placa. */
+.ep-bar::before,
+.ep-bar::after {
+  content: '';
+  position: absolute;
+  top: calc(-1 * var(--hang) - 23px);
+  width: 22px;
+  height: calc(var(--hang) + 34px);
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% calc(100% - 10px), transparent 0 3.5px, #2a170a 4px 5px, #d4ad66 5.5px 8px, #2a170a 8.5px 9.5px, transparent 10px),
+    repeating-linear-gradient(-55deg, #e8cb8e 0 4px, #a9834a 4px 8px) 50% 0 / 9px calc(100% - 17px) no-repeat,
+    linear-gradient(#3b2414, #3b2414) 50% 0 / 13px calc(100% - 17px) no-repeat;
+}
+
+.ep-bar::before {
+  left: 54px;
+}
+
+.ep-bar::after {
+  right: 54px;
 }
 
 .ep-bar button {
@@ -108,7 +137,7 @@
   transition: background 0.12s;
 }
 
-/* Pregos nos quatro cantos da placa. */
+/* Pregos nos cantos de baixo (em cima ficam as argolas das cordas). */
 .ep-bar__title::before {
   content: '';
   position: absolute;
@@ -116,8 +145,6 @@
   pointer-events: none;
   --nail: radial-gradient(circle, #e8c98e 0 1.5px, #7a5a3a 2px 3px, #2a170a 3.5px 4px, transparent 4.5px);
   background:
-    var(--nail) left 3px top 3px / 10px 10px no-repeat,
-    var(--nail) right 3px top 3px / 10px 10px no-repeat,
     var(--nail) left 3px bottom 3px / 10px 10px no-repeat,
     var(--nail) right 3px bottom 3px / 10px 10px no-repeat;
 }
@@ -372,7 +399,7 @@
 
 @media (max-width: 600px) {
   .ep-bar-wrap {
-    top: 10px;
+    top: 0;
   }
   .ep-bar__title {
     min-width: 0;

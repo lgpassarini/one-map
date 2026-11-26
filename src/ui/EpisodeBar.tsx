@@ -44,6 +44,22 @@ export function EpisodeBar() {
   const ep = episodeAt(episode)
   const go = (n: number) => episodeStore.select(n)
 
+  // A placa balança um pouco quando o episódio muda (reinicia a animação a cada troca).
+  const bar = useRef<HTMLDivElement>(null)
+  const firstEp = useRef(episode)
+  useEffect(() => {
+    const el = bar.current
+    if (!el || episode === firstEp.current) return
+    firstEp.current = -1
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const deg = [0, 1.6, -1.1, 0.6, -0.25, 0]
+    const at = [0, 0.15, 0.38, 0.6, 0.8, 1]
+    el.animate(
+      deg.map((d, i) => ({ transform: `rotate(${d}deg)`, offset: at[i] })),
+      { duration: 1600, easing: 'ease-out' },
+    )
+  }, [episode])
+
   // Teclado: ← → trocam de episódio (fora de campos de texto e com a lista fechada).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -59,7 +75,7 @@ export function EpisodeBar() {
 
   return (
     <div className="ep-bar-wrap">
-      <div className={`ep-bar${sailing ? ' ep-bar--locked' : ''}`}>
+      <div ref={bar} className={`ep-bar${sailing ? ' ep-bar--locked' : ''}`}>
         <button
           className="ep-bar__arrow"
           onClick={() => go(episode - 1)}
