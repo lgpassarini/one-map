@@ -77,11 +77,14 @@ consertadas; todos os locais caem em terra, menos os que ficam no mar de propós
 fillers no mar, Skypiea, o meio do anel de Long Ring).
 
 **Rota pronta (passo 3, 26/11/2026):** o `build-route` monta a rota pela ordem dos episódios: 52
-paradas (uma por trecho de episódios no mesmo local; os 4 trechos no mar param no meio do caminho)
-e 51 pernas pelo mar. A perna para a Reverse Mountain sobe pelo canal do East Blue e desce pelas
+paradas (uma por trecho de episódios no mesmo local; os trechos no mar param no meio do caminho,
+ou no porto quando o meio fica colado na ilha) e 51 pernas pelo mar. Paradas coladas dividem o
+porto, para o navio não dar voltinhas em torno da mesma ilha. A perna para a Reverse Mountain sobe pelo canal do East Blue e desce pelas
 cachoeiras (pontos com altura); a de Sabaody para a Ilha dos Tritões mergulha por baixo da Red
 Line na borda leste e sai na oeste (`jump`). O `?navios` agora faz a rota inteira, mas os navios
-seguem fora do mapa normal até a troca por episódio.
+seguem fora do mapa normal até a troca por episódio. Na revisão com o usuário, a chegada ficou
+sem giro: o navio parado (agora 2,7 unidades) fica como chegou, vira no lugar uma vez, devagar,
+para sair, e navegando a proa mira 1,5 unidade à frente no caminho (aprovado em 26/11/2026).
 
 | Área | Estado |
 | --- | --- |
