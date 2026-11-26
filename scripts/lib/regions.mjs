@@ -37,3 +37,29 @@ export async function rasterPolys(polys, W, H) {
 export async function ourChannels(geo) {
   return { land: await rasterPolys(geo.land, geo.width, geo.height), red: await rasterPolys(geo.redline, geo.width, geo.height) }
 }
+
+/**
+ * Transformação print → mapa de cada região: X = sx*px + tx, Y = sy*py + ty (px do mapa cortado).
+ * Nos quatro Blues é o encaixe uniforme do align.json; nas faixas da Grand Line, o quadro medido
+ * no print (Calm Belts em y; da Red Line/Twin Cape até Sabaody/Lodestar em x) e no nosso mapa.
+ * (Nas faixas, o formato de cada ilha usa escala uniforme em volta do centro, então um ponto
+ * dentro de uma ilha pode cair alguns px fora do lugar exato.)
+ */
+export function printTransforms(geo, align) {
+  const H = geo.height
+  const GL = [Math.round(geo.bands.grandLine[0] * H), Math.round(geo.bands.grandLine[1] * H)]
+  const uniform = (a) => ({ sx: a.scale, sy: a.scale, tx: a.tx, ty: a.ty })
+  const frame = (print, ours) => {
+    const sx = (ours.x1 - ours.x0) / (print.x1 - print.x0)
+    const sy = (ours.y1 - ours.y0) / (print.y1 - print.y0)
+    return { sx, sy, tx: ours.x0 - print.x0 * sx, ty: ours.y0 - print.y0 * sy }
+  }
+  return {
+    'north-blue': uniform(align['north-blue']),
+    'east-blue': uniform(align['east-blue']),
+    'west-blue': uniform(align['west-blue']),
+    'south-blue': uniform(align['south-blue']),
+    paradise: frame({ x0: 0, x1: 1999, y0: 48, y1: 352 }, { x0: 2262, x1: 3925, y0: GL[0], y1: GL[1] }),
+    'new-world': frame({ x0: 0, x1: 1998, y0: 58, y1: 365 }, { x0: 140, x1: 1890, y0: GL[0], y1: GL[1] }),
+  }
+}

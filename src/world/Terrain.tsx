@@ -3,19 +3,9 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import meta from '../data/terrain-meta.json'
 import { addEdgeFade } from './edgeFade'
+import { toonRamp } from './toon'
 
 const base = import.meta.env.BASE_URL
-
-/** Rampa de luz do toon shading: 3 tons chapados, sem gradiente. */
-function toonRamp() {
-  const data = new Uint8Array([120, 195, 255])
-  const t = new THREE.DataTexture(data, data.length, 1, THREE.RedFormat)
-  t.minFilter = THREE.NearestFilter
-  t.magFilter = THREE.NearestFilter
-  t.generateMipmaps = false
-  t.needsUpdate = true
-  return t
-}
 
 /**
  * Terreno cartoon: ilhas e Red Line como camadas extrudadas a partir dos contornos (bordas

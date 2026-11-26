@@ -1,0 +1,10 @@
+{
+  "_comment": "Locais feitos à mão. px = pixel no print da região (reference/regions/<region>.png), em cima da cidade. O porto (onde o navio para) é calculado pelo build-route: o ponto de mar mais próximo com folga da costa.",
+  "places": {
+    "foosha": { "name": { "pt": "Vila Foosha", "en": "Foosha Village" }, "region": "east-blue", "px": [1402, 312] },
+    "shells-town": { "name": { "pt": "Shells Town", "en": "Shells Town" }, "region": "east-blue", "px": [1262, 282] },
+    "orange-town": { "name": { "pt": "Orange Town", "en": "Orange Town" }, "region": "east-blue", "px": [984, 398] }
+  },
+  "_comment_route": "Ordem da viagem (protótipo: os três primeiros locais do East Blue).",
+  "route": ["foosha", "shells-town", "orange-town"]
+}

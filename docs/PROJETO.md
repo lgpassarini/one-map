@@ -44,16 +44,23 @@ Resumo; a lista completa e o porquê estão em [DECISOES.md](DECISOES.md).
   cinza-azulada.
 - **Reverse Mountain:** pico em platôs na paleta da Red Line, 4 canais subindo até uma piscina no
   topo, 1 descendo em 5 cachoeiras.
-- **Escala:** posições 2× espaçadas, ilhas 1,25×.
+- **Escala:** posições 2× espaçadas, ilhas 1,25×; as pequenas crescem até ~4 unidades (máx. 3×)
+  sem encostar nas vizinhas nem na Red Line.
 - **Ilhas vêm dos prints do usuário** (6 regiões); o xads181 dá Red Line, Reverse Mountain e Calm Belts.
 - **Câmera:** inclinação acompanha o zoom (~62° perto, ~22° no máximo); zoom de 40 a 173.
 - **Minimapa** 400×203 px no canto inferior esquerdo, retângulo de localização; transparente parado.
-- **Navio:** peça de tabuleiro parado (~2–2,5 unidades); navegando encolhe para ~40–50%, com
-  tamanho mínimo na tela e esteira.
+- **Navio:** peça de tabuleiro parado (~2,2 unidades); navegando encolhe para 45%, com tamanho
+  mínimo na tela. Feito como o terreno (camadas, topo claro/parede escura, contorno, toon).
+  Deixa um rastro na água no estilo da costa (água rasa + espuma recortada).
 
 ## Onde estamos
 
-Versão 1 (tag `v1.0.0`): só o mapa. Dá para navegar pelo mundo, sem navio, rota ou episódios.
+Versão 1 (tag `v1.0.0`) + navios prontos, mas **fora do mapa por enquanto**. Bote, Going Merry e
+Thousand Sunny estão modelados (bandeira, Jolly Roger, carneiro, leão e cúpulas conferidos com as
+referências do usuário) e o protótipo de navegação funciona, mas o mapa abre sem navio até existir a
+troca por episódio. Dev: `?navios` mostra o protótipo (bote na rota Foosha → Shells Town → Orange
+Town; Merry e Sunny dando voltas no North e no South Blue; `?seguir=bote|merry|sunny`). Ainda sem
+episódios.
 
 | Área | Estado |
 | --- | --- |
@@ -62,8 +69,8 @@ Versão 1 (tag `v1.0.0`): só o mapa. Dá para navegar pelo mundo, sem navio, ro
 | Minimapa | Pronto |
 | Qualidade móvel | Detecção automática; não testado num tablet real |
 | Pipeline de geografia | Pronto (`scripts/`) |
-| Rota do navio | Não começado |
-| Navio | Não começado |
+| Rota do navio | Protótipo: 3 locais do East Blue (`geo/places.json` → `scripts/build-route.mjs`) |
+| Navio | Modelos prontos: bote, Going Merry e Thousand Sunny feitos em código no estilo do terreno (`Ship.tsx`, `merryModel.ts`, `sunnyModel.ts`, peças e Jolly Roger em `shipParts.ts`); acelera/freia, balança nas ondas, encolhe navegando, deixa rastro (`Trail.ts`). **Fora do mapa** (só com `?navios`) até a troca por episódio |
 | Dados de episódios | Não começado |
 | Barra de episódios / lista | Não começado |
 | Zoom detalhado de ilha | Não começado |
@@ -72,26 +79,29 @@ Versão 1 (tag `v1.0.0`): só o mapa. Dá para navegar pelo mundo, sem navio, ro
 
 ## Problemas conhecidos
 
-- **Ilhas pequenas demais para o navio** (Grand Line ~1,5–2,5 unidades): solução = piso de tamanho ~4.
+- **Ilhas minúsculas** (< 8 px no print) seguem pequenas: o crescimento tem teto de 3×; 88 ilhas
+  ficam abaixo de 4 unidades porque encostariam numa vizinha ou na Red Line.
+- **Screenshots do dev server** às vezes vêm com módulos velhos do cache; conferir mudanças pelo
+  build (`vite preview`). Animações: usar `?shipt=s`, que simula os 3 s anteriores.
 - **Grand Line em baixa resolução:** prints com ilhas de 20–60 px e rótulos; Skypiea não entrou.
 - **Encaixe das faixas da Grand Line** medido a olho; erro possível de alguns % na horizontal.
 - **Margens vazias** perto da Red Line onde o mapa dos prints é mais estreito.
 - **Risquinhos brancos** nas pontas dos canais da Reverse Mountain.
-- **Malha de 5,5 MB**; não testada em tablet.
+- **Malha de 5,9 MB** (era 5,5; as ilhas que cresceram ganharam platôs); não testada em tablet.
 - Screenshots headless mostram faixa escura na borda (artefato do Edge headless).
 
 ## Próximos passos
 
-1. Piso de tamanho nas ilhas pequenas.
-2. Protótipo: barquinho provisório em loop Foosha → Shells Town → Orange Town.
-3. Rota completa pelo mar, com folga da costa; travessia na Ilha dos Tritões.
-4. Dados: ~1150 episódios do anime + One Pace (links, sinopse), tradução PT.
-5. Locais: nomes/posições das ilhas (dos prints), episódio → local.
-6. Barra `< Arco · Ep >`, lista, painel da ilha, progresso, exportar/importar.
-7. Modelos do navio e troca conforme o episódio.
-8. Zoom detalhado em 1 ilha do East Blue.
-9. Dropdown de idioma.
-10. Hospedagem e teste em tablet.
+1. Rota completa: mais locais em `geo/places.json` (a rota pelo mar já sai sozinha);
+   travessia na Ilha dos Tritões e Reverse Mountain (a rota hoje não atravessa a Red Line).
+2. Dados: ~1150 episódios do anime + One Pace (links, sinopse), tradução PT.
+3. Locais: nomes/posições das ilhas (dos prints), episódio → local.
+4. Barra `< Arco · Ep >`, lista, painel da ilha, progresso, exportar/importar.
+5. Navio de volta ao mapa: troca bote → Merry → Sunny conforme o episódio (tirar o `?navios` e o
+   protótipo de voltas do `World.tsx`); zoom da câmera em viagens longas.
+6. Zoom detalhado em 1 ilha do East Blue.
+7. Dropdown de idioma.
+8. Hospedagem e teste em tablet.
 
 Em aberto com o usuário: prints da Grand Line mais aproximados (3–4 por faixa).
 
@@ -101,5 +111,7 @@ Em aberto com o usuário: prints da Grand Line mais aproximados (3–4 por faixa
 - Mapa de referência: `reference/world-map-xads181.jpeg` (mapa de fã do xads181, r/OnePiece)
 - Prints das regiões: `reference/regions/*.png` + `align.json`
 - Stack: Vite + React + TypeScript + React Three Fiber + drei; scripts Node (sharp, d3-contour)
-- Rodar: `npm install`, `npm run dev`; mapa: `npm run geo:extract` → `npm run geo:terrain`
-  (`npm run geo:align` antes, se trocar um print); dev: `?quality=low|high`, `?at=x,y&dist=n`
+- Rodar: `npm install`, `npm run dev`; mapa: `npm run geo:extract` → `npm run geo:terrain` (já roda
+  a rota; só a rota: `npm run geo:route`) (`npm run geo:align` antes, se trocar um print);
+  dev: `?quality=low|high`, `?at=x,y&dist=n`, `?navios` (mostra os navios), `?shipt=s` (adianta a
+  animação do navio); navios de perto: `npm run dev` → `/navios.html?navio=merry|sunny` (`&spin=0&yaw=graus&d=dist&ty=altura` para ângulo fixo)

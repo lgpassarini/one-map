@@ -6,15 +6,13 @@ export const WORLD_H = meta.world.height
 
 // O mapa fica no plano XZ: x cresce para o leste, -z é o norte (topo da referência).
 // Escala (ver scripts/build-terrain.mjs): as posições são espaçadas por mapScale, mas cada ilha
-// cresce só islandScale em volta do próprio centro. Por isso um ponto dentro de uma ilha
+// cresce só islandScale (as pequenas, mais) em volta do próprio centro. Por isso um ponto dentro de uma ilha
 // precisa da transformação daquela ilha.
 
 /** Pixel do mapa (já cortado) → posição no mundo (x, z), na escala do mapa (mar, Red Line). */
 export function pxToWorld(px: number, py: number): [number, number] {
   return [(px / meta.pixels.width) * WORLD_W - WORLD_W / 2, (py / meta.pixels.height) * WORLD_H - WORLD_H / 2]
 }
-
-const k = islandData.islandScale / islandData.mapScale
 
 /** Pixel do mapa → mundo, levando em conta a ilha em que o ponto está (se estiver em uma). */
 export function mapPxToWorld(px: number, py: number): [number, number] {
@@ -32,6 +30,7 @@ export function mapPxToWorld(px: number, py: number): [number, number] {
   }
   if (!best) return pxToWorld(px, py)
   const [cx, cy] = best.c
+  const k = best.s // escala da ilha (ilhas pequenas crescem mais: piso de tamanho)
   return pxToWorld(cx + (px - cx) * k, cy + (py - cy) * k)
 }
 

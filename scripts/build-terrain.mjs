@@ -173,11 +173,70 @@ const islandBiome = new Uint8Array(nIslands)
       max > 175 && sat < 45 ? BIOME.SNOW : r > g + 4 && r > 130 && b > 70 ? BIOME.DESERT : r > g + 12 || sat < 22 ? BIOME.ROCK : BIOME.GRASS
   }
 }
-/** Ponto de uma ilha (px da referência) → mundo: a ilha cresce ISLAND_SCALE em volta do seu centro. */
+// ---------- 4b) Escala de cada ilha (piso de tamanho) ----------
+// Em geral a ilha cresce ISLAND_SCALE em volta do seu centro. As pequenas crescem mais, até
+// MIN_SIZE unidades (no máximo MAX_GROW vezes), para o navio caber; o crescimento para antes de
+// encostar numa vizinha (ISLAND_GAP) ou na Red Line (RL_GAP).
+const MIN_SIZE = 4 // unidades do mundo (maior lado da ilha)
+const MAX_GROW = 3
+const ISLAND_GAP = 7 // px da referência, depois de escalar
+const RL_GAP = 10
 const k = ISLAND_SCALE / MAP_SCALE
+const islandK = new Float64Array(nIslands).fill(k)
+{
+  // Raio de cada ilha (px) e pixels da borda (para medir a distância até as vizinhas).
+  const radius = new Float64Array(nIslands)
+  const edge = Array.from({ length: nIslands }, () => [])
+  for (let i = 0; i < w * h; i++) {
+    const l = islands.labels[i]
+    if (l < 0) continue
+    const x = i % w
+    const y = (i - x) / w
+    radius[l] = Math.max(radius[l], Math.hypot(x - centroid[l * 2], y - centroid[l * 2 + 1]) + 0.5)
+    const border = x === 0 || y === 0 || x === w - 1 || y === h - 1 ||
+      islands.labels[i - 1] !== l || islands.labels[i + 1] !== l || islands.labels[i - w] !== l || islands.labels[i + w] !== l
+    if (border) edge[l].push(x, y)
+  }
+  const distToRed = edt(redline, w, h) // distância até a Red Line
+  const want = new Float64Array(nIslands)
+  for (let l = 0; l < nIslands; l++) {
+    const e = Math.max(bbox[l * 4 + 2] - bbox[l * 4], bbox[l * 4 + 3] - bbox[l * 4 + 1]) + 1
+    want[l] = Math.max(k, Math.min(k * MAX_GROW, MIN_SIZE / (e * PX)))
+  }
+  const grows = [...Array(nIslands).keys()].filter((l) => want[l] > k)
+  // Distância do centro de l até a ilha m já escalada (m cresce em volta do próprio centro).
+  const distTo = (l, m) => {
+    const cx = centroid[l * 2], cy = centroid[l * 2 + 1], mx = centroid[m * 2], my = centroid[m * 2 + 1]
+    const s = islandK[m]
+    let best = Infinity
+    const E = edge[m]
+    for (let q = 0; q < E.length; q += 2) best = Math.min(best, Math.hypot(mx + (E[q] - mx) * s - cx, my + (E[q + 1] - my) * s - cy))
+    return best
+  }
+  for (let pass = 0; pass < 4; pass++) {
+    for (const l of grows) {
+      const cx = centroid[l * 2], cy = centroid[l * 2 + 1]
+      let room = distToRed[Math.round(cy) * w + Math.round(cx)] - RL_GAP
+      for (let m = 0; m < nIslands; m++) {
+        if (m === l) continue
+        const far = Math.hypot(centroid[m * 2] - cx, centroid[m * 2 + 1] - cy) - radius[m] * islandK[m]
+        if (far > room + ISLAND_GAP) continue // longe demais para limitar
+        room = Math.min(room, distTo(l, m) - ISLAND_GAP)
+      }
+      // a ilha escalada (raio radius[l] * s) precisa caber em room
+      // A última passada só diminui: assim nenhuma ilha volta a encostar numa vizinha.
+      const s = Math.max(k, Math.min(want[l], room / radius[l]))
+      islandK[l] = pass === 3 ? Math.min(islandK[l], s) : s
+    }
+  }
+  const grown = grows.filter((l) => islandK[l] > k * 1.05)
+  const limited = grows.filter((l) => islandK[l] < want[l] * 0.95)
+  console.log(`piso de tamanho: ${grown.length} ilhas cresceram (${limited.length} limitadas pelas vizinhas/Red Line)`)
+}
+/** Ponto de uma ilha (px da referência) → mundo: a ilha cresce em volta do seu centro. */
 const islandToWorld = (l, x, y) => {
-  const cx = centroid[l * 2], cy = centroid[l * 2 + 1]
-  return mapToWorld(cx + (x - cx) * k, cy + (y - cy) * k)
+  const cx = centroid[l * 2], cy = centroid[l * 2 + 1], s = islandK[l]
+  return mapToWorld(cx + (x - cx) * s, cy + (y - cy) * s)
 }
 
 // ---------- 5) Alturas contínuas (decidem os platôs) ----------
@@ -216,7 +275,8 @@ for (let y = 0; y < h; y++) {
   for (let x = 0; x < w; x++) {
     const i = y * w + x
     if (!land[i]) continue
-    const d = distToWater[i]
+    // Ilhas que cresceram ganham relevo como se fossem desse tamanho (mais platôs).
+    const d = distToWater[i] * (islandK[islands.labels[i]] / k)
     const n = fbm(x, y, { period: 60, octaves: 2, seed: 3 })
     const desert = islandBiome[islands.labels[i]] === BIOME.DESERT
     islandRaw[i] = 0.1 + (1 - Math.exp(-d / 22)) * (0.55 + 1.1 * n) * (desert ? 0.55 : 1) + smooth(2, 5, d) * 0.12
@@ -563,6 +623,7 @@ for (let l = 0; l < nIslands; l++) {
   islandList.push({
     c: [+centroid[l * 2].toFixed(1), +centroid[l * 2 + 1].toFixed(1)],
     box: [bbox[l * 4], bbox[l * 4 + 1], bbox[l * 4 + 2], bbox[l * 4 + 3]],
+    s: +islandK[l].toFixed(4),
   })
 }
 await writeFile('src/data/islands.json', JSON.stringify({ mapScale: MAP_SCALE, islandScale: ISLAND_SCALE, islands: islandList }) + '\n')
