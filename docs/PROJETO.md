@@ -114,4 +114,4 @@ Em aberto com o usuário: prints da Grand Line mais aproximados (3–4 por faixa
 - Rodar: `npm install`, `npm run dev`; mapa: `npm run geo:extract` → `npm run geo:terrain` (já roda
   a rota; só a rota: `npm run geo:route`) (`npm run geo:align` antes, se trocar um print);
   dev: `?quality=low|high`, `?at=x,y&dist=n`, `?navios` (mostra os navios), `?shipt=s` (adianta a
-  animação do navio); navios de perto: `npm run dev` → `/navios.html?navio=merry|sunny` (`&spin=0&yaw=graus&d=dist&ty=altura` para ângulo fixo)
+  animação do navio)
