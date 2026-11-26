@@ -96,7 +96,7 @@ export function EpisodeBar() {
               <>
                 {arcName(ep.arc)}
                 <span className="ep-bar__dot">·</span>
-                Ep {ep.n}
+                Ep<span className="ep-bar__num">{ep.n}</span>
               </>
             ) : (
               'Partida'

@@ -158,6 +158,11 @@
   color: #ffbf5e;
 }
 
+/* A Alegreya deixa o espaço de "Ep 148" apertado: o número ganha uma margem própria. */
+.ep-bar__num {
+  margin-left: 0.32em;
+}
+
 /* Viajando: a barra fica travada (texto apagado, setas desligadas). */
 .ep-bar--locked .ep-bar__main {
   opacity: 0.6;
