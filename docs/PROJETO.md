@@ -1,6 +1,6 @@
 # One Map: visão do projeto
 
-Atualizado em 25/11/2026. Versão viva no claude.ai: https://claude.ai/artifact/SmgzNLyAsuurPYK3GRSd7w
+Atualizado em 26/11/2026. Versão viva no claude.ai: https://claude.ai/artifact/SmgzNLyAsuurPYK3GRSd7w
 (mantenha as duas em sincronia ao fechar uma etapa).
 
 ## A ideia
@@ -59,8 +59,15 @@ Versão 1 (tag `v1.0.0`) + navios prontos, mas **fora do mapa por enquanto**. Bo
 Thousand Sunny estão modelados (bandeira, Jolly Roger, carneiro, leão e cúpulas conferidos com as
 referências do usuário) e o protótipo de navegação funciona, mas o mapa abre sem navio até existir a
 troca por episódio. Dev: `?navios` mostra o protótipo (bote na rota Foosha → Shells Town → Orange
-Town; Merry e Sunny dando voltas no North e no South Blue; `?seguir=bote|merry|sunny`). Ainda sem
-episódios.
+Town; Merry e Sunny dando voltas no North e no South Blue; `?seguir=bote|merry|sunny`).
+
+**Dados de episódios prontos (passo 1, aprovado pelo usuário em 26/11/2026):** `npm run eps:fetch` baixa opguide.app, onepace.net e a
+One Piece Wiki para `.cache/episodes/`; `npm run eps:build` cruza tudo em `src/data/episodes.json`
+(1180 episódios, 52 arcos do anime oficial, um local por arco, 998 com link do One Pace) e gera
+`docs/revisao-episodios.md` com os trechos de local e as divergências entre as fontes. O local de
+cada episódio vem de `geo/episode-places.json` (feito à mão, 51 trechos, 42 locais com 12 ilhas de
+filler); o navio começa em Foosha (`routeOrigin`). O build valida a estrutura e falha se houver
+referência inválida. Os dados ainda não são usados pela aplicação.
 
 | Área | Estado |
 | --- | --- |
@@ -71,7 +78,7 @@ episódios.
 | Pipeline de geografia | Pronto (`scripts/`) |
 | Rota do navio | Protótipo: 3 locais do East Blue (`geo/places.json` → `scripts/build-route.mjs`) |
 | Navio | Modelos prontos: bote, Going Merry e Thousand Sunny feitos em código no estilo do terreno (`Ship.tsx`, `merryModel.ts`, `sunnyModel.ts`, peças e Jolly Roger em `shipParts.ts`); acelera/freia, balança nas ondas, encolhe navegando, deixa rastro (`Trail.ts`). **Fora do mapa** (só com `?navios`) até a troca por episódio |
-| Dados de episódios | Não começado |
+| Dados de episódios | Pronto e aprovado: `src/data/episodes.json` (`scripts/fetch-episodes.mjs`, `scripts/build-episodes.mjs`, locais em `geo/episode-places.json`) |
 | Barra de episódios / lista | Não começado |
 | Zoom detalhado de ilha | Não começado |
 | Idiomas | Não começado |
@@ -92,16 +99,23 @@ episódios.
 
 ## Próximos passos
 
-1. Rota completa: mais locais em `geo/places.json` (a rota pelo mar já sai sozinha);
-   travessia na Ilha dos Tritões e Reverse Mountain (a rota hoje não atravessa a Red Line).
-2. Dados: ~1150 episódios do anime + One Pace (links, sinopse), tradução PT.
-3. Locais: nomes/posições das ilhas (dos prints), episódio → local.
-4. Barra `< Arco · Ep >`, lista, painel da ilha, progresso, exportar/importar.
-5. Navio de volta ao mapa: troca bote → Merry → Sunny conforme o episódio (tirar o `?navios` e o
+Plano fechado em 26/11/2026 (detalhes em DECISOES.md, "Dados de episódios e locais"). Os passos
+2–5 avançam por saga, começando pelo East Blue.
+
+1. ~~**Lista de episódios e locais**~~ — feito (26/11/2026).
+2. **Mapa ilha → arco → episódios:** pôr no mapa os 42 locais de `geo/episode-places.json`
+   (Claude propõe a posição pelos prints e pelo xads181 e gera uma imagem com os nomes; o usuário
+   confere) em `geo/places.json`. As 12 ilhas de filler e Skypiea, Ilha dos Tritões, Thriller Bark
+   e Zou viram pontos marcadores; o "mar" (20 episódios) é um ponto entre o local anterior e o
+   próximo.
+3. **Rota** gerada a partir dessa lista (`geo/places.json` → `scripts/build-route.mjs`),
+   incluindo depois as travessias da Reverse Mountain e da Ilha dos Tritões.
+4. **Interface:** barra `< Arco · Ep >` e lista de episódios, progresso, exportar/importar.
+5. **Navio navegando:** troca bote → Merry → Sunny conforme o episódio (tirar o `?navios` e o
    protótipo de voltas do `World.tsx`); zoom da câmera em viagens longas.
-6. Zoom detalhado em 1 ilha do East Blue.
-7. Dropdown de idioma.
-8. Hospedagem e teste em tablet.
+6. **Zoom da ilha** com animação e painel, começando por 1 ilha do East Blue.
+7. Depois: sinopses e dropdown de idioma (tradução PT), modelos das ilhas de filler e dos locais
+   especiais, hospedagem e teste em tablet.
 
 Em aberto com o usuário: prints da Grand Line mais aproximados (3–4 por faixa).
 
@@ -114,4 +128,4 @@ Em aberto com o usuário: prints da Grand Line mais aproximados (3–4 por faixa
 - Rodar: `npm install`, `npm run dev`; mapa: `npm run geo:extract` → `npm run geo:terrain` (já roda
   a rota; só a rota: `npm run geo:route`) (`npm run geo:align` antes, se trocar um print);
   dev: `?quality=low|high`, `?at=x,y&dist=n`, `?navios` (mostra os navios), `?shipt=s` (adianta a
-  animação do navio)
+  animação do navio); episódios: `npm run eps:fetch` (baixa as fontes) → `npm run eps:build`

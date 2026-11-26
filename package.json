@@ -11,7 +11,9 @@
     "geo:extract": "node scripts/extract-geography.mjs --debug && node scripts/merge-regions.mjs",
     "geo:align": "node scripts/align-regions.mjs",
     "geo:terrain": "node scripts/build-terrain.mjs && node scripts/build-route.mjs",
-    "geo:route": "node scripts/build-route.mjs"
+    "geo:route": "node scripts/build-route.mjs",
+    "eps:fetch": "node scripts/fetch-episodes.mjs",
+    "eps:build": "node scripts/build-episodes.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

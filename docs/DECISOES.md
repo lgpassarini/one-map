@@ -130,13 +130,53 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
   `{ en, pt }`, e sem tradução aparece o inglês. Os títulos oficiais da Crunchyroll BR podem
   substituir as traduções depois.
 
+## Dados de episódios e locais (sessão de perguntas em 2026-11-26)
+- **Local por episódio, cruzando fontes:** os arcos do One Pace dão a divisão, e as páginas da
+  One Piece Wiki dão as ilhas dentro de cada arco. Onde as fontes divergem, vai para revisão do
+  usuário.
+- **Local pelo arco, não pela cena** (revisto em 26/11): cada arco do anime fica num local só, a
+  ilha ou região principal; os episódios de viagem até a ilha já contam como a ilha; flashbacks e
+  cenas de outros personagens não mudam o local. `mar` só entre arcos sem ilha de destino
+  (Post-Arabasta, Caesar Retrieval, Levely).
+- **Fillers com ilha própria ficam nessa ilha** (Warship Island, Goat Island, Ruluka, G-8,
+  Ocean's Dream, Lovely Land, Spa Island, Little East Blue, Maubeugemour, Silver Mine, Fron,
+  Guilda Cidre), cadastradas com `kind: "filler"`. Isso substitui a decisão anterior de deixar
+  os fillers no mar.
+- **Exceções ao "local pelo arco":** Diary of Koby-Meppo (68–69) fica no mar entre Whisky Peak e
+  Little Garden. Zou vai até o 779 (categoria da Wiki), Marine Rookie 780–782, Whole Cake 783–877.
+- **`filler` de um arco = mais da metade dos episódios tem a tag `filler`** (a tag vem do
+  opguide; misto não conta). Caesar Retrieval (626–628) fica `false`: só o 627 é filler puro; o
+  626 adapta 2 páginas do cap. 699 e o 628 os caps. 699–700 (opguide e Wiki concordam). A
+  aplicação ainda não usa o campo.
+- **Especiais** ("Specials" na Wiki: 291, 292, 303, 336, 406, 407, 492, 542, 590, 907) ficam no
+  arco e no local de antes. O 336 (Chopperman) segue essa convenção e fica em Ice Hunter.
+- **`routeOrigin: "foosha"`** no `episodes.json`: o navio começa o mapa em Foosha, sem Foosha ser o
+  local de nenhum episódio (o ep. 1 já é Shells Town).
+- **Nomes das ilhas do mapa:** o Claude propõe a partir dos rótulos dos prints e do mapa do
+  xads181 e gera uma imagem com os nomes; o usuário confere.
+- **Locais especiais** (Skypiea, Ilha dos Tritões, Thriller Bark, Zou): pontos marcadores por
+  enquanto; modelos próprios depois.
+- **Campos no começo:** número, título (EN), arco, local, capítulos do mangá, episódio e link do
+  One Pace, tags Filler/Recap. Sinopse e tradução entram junto com o dropdown de idioma.
+- **A base é o anime oficial.** O One Pace é um fan cut e entra só como link. O arco de cada
+  episódio é o da navegação da One Piece Wiki (com os arcos de filler e as minisséries de capa);
+  os capítulos (opguide.app) e a divisão do One Pace servem para conferir.
+- **Fontes:** opguide.app (capítulos, fillers), onepace.net (link do episódio que cobre cada
+  episódio do anime), One Piece Wiki (título, arco, sinopse, recap).
+- **O navio segue o arco** (ver "Local pelo arco" acima); as minisséries de capa ficam no local
+  do arco em volta.
+- **Escopo:** dados completos (1180) de uma vez; nomes das ilhas, rota, interface e navio por
+  fatias de saga, começando pelo East Blue.
+
 ## Stack
 - Vite + React + TypeScript + React Three Fiber (Three.js) + drei.
 - Scripts Node para extrair contornos e montar os dados.
 
 ## Primeira versão
 1. Mundo inteiro (contornos extraídos) e rota inteira.
-2. Todos os episódios no navegador, com o local definido **por arco**.
-3. Mapeamento **episódio a episódio** nos primeiros ~100 (East Blue até a entrada da Grand Line).
+2. Todos os episódios no navegador, com o local definido **por episódio** (cruzando One Pace e
+   Wiki; ver "Dados de episódios e locais"). Antes era por arco, com episódio a episódio só nos
+   primeiros ~100.
+3. Ilhas, rota, interface e navio por fatias de saga, começando pelo East Blue.
 4. Zoom detalhado em **1 ilha do começo** (Vila Foosha ou outra do East Blue).
 5. Depois: refinar arco a arco, mais ilhas detalhadas, travessias especiais, login.
