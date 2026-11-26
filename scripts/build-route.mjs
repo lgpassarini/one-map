@@ -32,7 +32,7 @@ const islandData = JSON.parse(await readFile('src/data/islands.json', 'utf8'))
 const T = printTransforms(geo, align)
 
 const WORLD_W = meta.world.width, WORLD_H = meta.world.height
-const PORT_CLEAR = 2.1 // unidades: o navio parado (~2,2, e girando no porto) não encosta na praia
+const PORT_CLEAR = 2.6 // unidades: o navio parado (~2,7, e girando no porto) não encosta na praia
 const MIN_CLEAR = 0.7 // navegando o navio encolhe (~1 unidade)
 const WANT_CLEAR = 3
 
@@ -296,6 +296,16 @@ for (const s of stops) {
   const from = s.place === 'reverse-mountain' ? mouthOut(DOWN, PORT_CLEAR + 1.5) : all[s.place].town
   port[s.place] = toWorld(...nearestWater(from, PORT_CLEAR))
 }
+// Paradas seguidas com portos a menos de STAY_DIST (ex.: Ilha dos Tritões → Mar de Maubeugemour)
+// dividem o porto: o navio não fica dando voltinhas em torno da mesma ilha.
+const STAY_DIST = 5
+for (let i = 1; i < stops.length; i++) {
+  const a = stops[i - 1].place, b = stops[i].place
+  if (a && b && a !== b && dist(port[a], port[b]) < STAY_DIST) {
+    console.log(`  ${b}: usa o porto de ${a} (${dist(port[a], port[b]).toFixed(1)} unidades)`)
+    port[b] = port[a]
+  }
+}
 
 // ---------- Pernas ----------
 /** Caminho pelo mar de `a` a `b` (A* → enxuga → arredonda → reamostra), pontos [x, z]. */
@@ -303,8 +313,30 @@ function seaPath(a, b) {
   const raw = simplify(astar(nearestWater(a, MIN_CLEAR), nearestWater(b, MIN_CLEAR))).map(([x, y]) => toWorld(x, y))
   raw[0] = a
   raw[raw.length - 1] = b
-  return chaikin(raw)
+  return straightEnds(chaikin(raw))
 }
+
+/**
+ * Entrada e saída do porto em linha reta: troca os primeiros e os últimos ~END_STRAIGHT unidades
+ * do caminho por uma reta, se ela não chega perto da costa. Sem isso o caminho faz curvas fechadas
+ * bem na chegada, e o navio, já freando, gira no lugar.
+ */
+const END_STRAIGHT = 6
+function straightOk(a, b) {
+  const n = Math.ceil(dist(a, b) / (CELL * 0.5))
+  for (let q = 1; q < n; q++) if (clearAtWorld(lerp(a, b, q / n)) < MIN_CLEAR + 0.3) return false
+  return true
+}
+function straightStart(pts) {
+  let acc = 0, best = 1
+  for (let k = 1; k < pts.length - 1; k++) {
+    acc += dist(pts[k - 1], pts[k])
+    if (acc > END_STRAIGHT) break
+    if (straightOk(pts[0], pts[k])) best = k
+  }
+  return [pts[0], ...pts.slice(best)]
+}
+const straightEnds = (pts) => straightStart(straightStart(pts).reverse()).reverse()
 
 /**
  * Travessia da Reverse Mountain: do East Blue até a boca do canal, sobe por ele até a piscina do
@@ -334,9 +366,11 @@ function underRedLine(a, b) {
   while (xr > 0 && clearAt(xr, cy) < WANT_CLEAR) xr--
   while (xl < GW - 1 && clearAt(xl, cy) < WANT_CLEAR) xl++
   const east = toWorld(xr, cy), west = toWorld(xl, cy)
+  // Porto entre a borda e o primeiro mar aberto: vai direto, sem passar dele e voltar.
+  const arrive = b[0] <= west[0] ? [[b[0], b[1], 0]] : flat(seaPath(west, b))
   return [
     [...flat(seaPath(a, east)), [WORLD_W / 2, z, -DIVE]],
-    [[-WORLD_W / 2, z, -DIVE], ...flat(seaPath(west, b))],
+    [[-WORLD_W / 2, z, -DIVE], ...arrive],
   ]
 }
 
@@ -361,7 +395,8 @@ function legPath(from, to) {
   if (cache.has(key)) return cache.get(key)
   const back = cache.get(`${to}>${from}`)
   let parts
-  if (back) parts = [...back].reverse().map((p) => [...p].reverse())
+  if (dist(port[from], port[to]) < 0.01) parts = [[port[from]]] // mesmo porto: o navio fica
+  else if (back) parts = [...back].reverse().map((p) => [...p].reverse())
   else if (to === 'reverse-mountain') parts = [reverseMountain(port[from], port[to])]
   else if (to === 'fishman-island') parts = underRedLine(port[from], port[to])
   else parts = [seaPath(port[from], port[to])]
@@ -369,8 +404,12 @@ function legPath(from, to) {
   return parts
 }
 
-/** Junta as partes numa perna: pontos reamostrados e `jump` = índice onde o navio troca de borda. */
+/**
+ * Junta as partes numa perna: pontos reamostrados e `jump` = índice onde o navio troca de borda.
+ * Uma perna parada (`stay`, um ponto só) = a parada seguinte é no mesmo lugar.
+ */
 function makeLeg(from, to, parts) {
+  if (parts.length === 1 && parts[0].length === 1) return { from, to, length: 0, stay: true, points: [r2(parts[0][0].slice(0, 2))] }
   const sampled = parts.map((p) => resample(p).map(r2))
   const points = sampled.flat()
   const leg = { from, to, length: +sampled.reduce((s, p) => s + pathLength(p), 0).toFixed(1), points }
@@ -378,6 +417,7 @@ function makeLeg(from, to, parts) {
   return leg
 }
 
+const SEA_MIN = 8 // parada no mar a menos disso do porto de antes fica no porto
 const legs = []
 for (let i = 0; i < stops.length - 1; i++) {
   const a = stops[i], b = stops[i + 1]
@@ -386,6 +426,12 @@ for (let i = 0; i < stops.length - 1; i++) {
     const [before, after] = a.sea
     const parts = legPath(before, after)
     if (parts.length > 1) throw new Error(`parada no mar numa travessia: ${a.key}`)
+    if (pathLength(parts[0]) / 2 < SEA_MIN) {
+      // Meio do caminho colado na ilha de antes: o navio fica no porto e só sai depois.
+      a.at = r2(port[before])
+      legs.push(makeLeg(before, a.key, [[port[before]]]), makeLeg(a.key, b.place, parts))
+      continue
+    }
     const [p1, p2] = splitHalf(parts[0])
     a.at = r2(p1.at(-1).slice(0, 2))
     legs.push(makeLeg(before, a.key, [p1]), makeLeg(a.key, b.place, [p2]))

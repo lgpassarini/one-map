@@ -67,7 +67,7 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
   mas cada ilha cresce só 1,25× em volta do próprio centro (`ISLAND_SCALE`). O resultado é muito
   mais mar entre as ilhas, como nos outros mapas de referência. Por isso um local dentro de uma
   ilha usa a transformação da ilha (`src/data/islands.json`, `mapPxToWorld`).
-- **Piso de tamanho:** ilhas pequenas crescem até ~4 unidades (o navio parado tem ~2,2), no máximo
+- **Piso de tamanho:** ilhas pequenas crescem até ~4 unidades (o navio parado tinha ~2,2; hoje ~2,7), no máximo
   3×, e param antes de encostar numa vizinha ou na Red Line. Ganham relevo como se fossem desse
   tamanho. A escala de cada ilha fica em `islands.json` (`s`).
 - **Reverse Mountain é um pico pontudo em platôs, não um cânion nem um cone liso:** usa o mesmo
@@ -110,7 +110,16 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
   visual (o processo e a geometria são nossos); um modelo marcado como NoAI foi descartado até como
   referência. Mesmo método do bote (camadas extrudadas), mais peças arredondadas (carneiro, leão,
   mastros) com contorno "casco invertido" e velas/bandeiras com o Jolly Roger desenhado em canvas.
-- **Porto:** a 2,1 unidades da costa, para o navio parado (e girando) não encostar na praia.
+- **Porto:** a 2,6 unidades da costa, para o navio parado (e girando) não encostar na praia.
+- **Chegada sem giro brusco (feedback do usuário, 2026-11-26):** o navio parado ficou maior
+  (2,2 → 2,7 unidades). A virada tem velocidade angular limitada e amortecida (até 1,1 rad/s
+  navegando, 0,45 rad/s parado). Parado, ele não vira mais para a próxima saída: só termina
+  devagar o giro que vinha fazendo, uma vez, e vira para a saída quando parte. A entrada e a
+  saída do porto são em linha reta nas últimas ~6 unidades, quando a reta não encosta na costa.
+- **Sem voltinhas em torno da mesma ilha:** paradas seguidas com portos a menos de 5 unidades
+  dividem o porto (Reverse Mountain → Whisky Peak, Ilha dos Tritões → Maubeugemour). Um ponto de
+  mar a menos de 8 unidades do porto anterior fica no porto (os de Whisky Peak, Alabasta e Punk
+  Hazard). Nesses casos a perna é `stay` (um ponto só) e o navio não se move.
 - Muda conforme o episódio: bote a remo, depois o Going Merry (de Syrup Village até o fim de
   Enies Lobby), depois o Thousand Sunny.
 - Travessias especiais (Reverse Mountain, Knock Up Stream, descida até a Ilha dos Tritões)

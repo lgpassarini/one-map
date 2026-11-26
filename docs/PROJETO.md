@@ -49,7 +49,7 @@ Resumo; a lista completa e o porquê estão em [DECISOES.md](DECISOES.md).
 - **Ilhas vêm dos prints do usuário** (6 regiões); o xads181 dá Red Line, Reverse Mountain e Calm Belts.
 - **Câmera:** inclinação acompanha o zoom (~62° perto, ~22° no máximo); zoom de 40 a 173.
 - **Minimapa** 400×203 px no canto inferior esquerdo, retângulo de localização; transparente parado.
-- **Navio:** peça de tabuleiro parado (~2,2 unidades); navegando encolhe para 45%, com tamanho
+- **Navio:** peça de tabuleiro parado (~2,7 unidades; gira devagar, uma vez, ao chegar); navegando encolhe para 45%, com tamanho
   mínimo na tela. Feito como o terreno (camadas, topo claro/parede escura, contorno, toon).
   Deixa um rastro na água no estilo da costa (água rasa + espuma recortada).
 
