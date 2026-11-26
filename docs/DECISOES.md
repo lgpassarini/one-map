@@ -136,6 +136,12 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
 - **Câmera nas viagens longas:** além de ~50 unidades de viagem, a câmera se afasta (0,12 de
   distância por unidade, até +110 e o zoom máximo), fica afastada no meio e volta à distância de
   antes perto do destino; a inclinação acompanha o zoom.
+- **Câmera travada na viagem (2026-11-26):** do giro de saída até a chegada, arrastar, zoom e giro
+  não respondem; a câmera fica no navio.
+- **Âncora e bússola:** medalhão de madeira no canto inferior direito (o minimapa ocupa o esquerdo):
+  âncora com o navio parado, bússola com a agulha balançando durante a viagem. Clicar na âncora leva
+  a câmera de volta ao navio em ~1 s (centraliza, zoom 50 como ao abrir a página, norte para cima);
+  com a câmera já no navio ou indo para lá, a âncora fica inativa (não recentraliza à toa).
 - Travessias especiais (Reverse Mountain, Knock Up Stream, descida até a Ilha dos Tritões)
   ficam **para depois**. Na v1 são trechos normais da rota.
 

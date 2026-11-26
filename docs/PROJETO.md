@@ -84,7 +84,7 @@ sem giro: o navio parado (agora 2,7 unidades) fica como chegou, vira no lugar um
 para sair, e navegando a proa mira 1,5 unidade à frente no caminho (aprovado em 26/11/2026).
 
 **Interface pronta (passo 4, aprovada pelo usuário em 26/11/2026):** barra `< Arco · Ep N >` no topo
-(`src/ui/EpisodeBar.tsx`) com o local e as tags embaixo, setas e ← →, e lista de episódios por arco
+(`src/ui/EpisodeBar.tsx`) com as tags, setas e ← →, e lista de episódios por arco
 com busca. O episódio fica em `src/state/episode.ts` (localStorage, `?ep=N`; 0 = Partida em
 Foosha). O bote voltou ao mapa: fica na parada do episódio e, ao escolher outro, navega pela rota
 até lá (ida ou volta, direto pelas paradas do meio, 2,2–7 s), com a barra travada e a câmera
@@ -92,11 +92,15 @@ acompanhando. Exportar/importar arquivo saiu do plano. Na revisão, a barra viro
 madeira pendurada por cordas no topo da tela (só `Arco · Ep N` e as tags; balança de leve ao trocar
 de episódio; 60% de opacidade sem uso), e a lista ganhou moldura de madeira e rolagem no tema.
 
-**Navio navegando (passo 5, 26/11/2026, em revisão):** o navio muda conforme o episódio (bote até
+**Navio navegando pronto (passo 5, aprovado pelo usuário em 26/11/2026):** o navio muda conforme o episódio (bote até
 o 17, Merry do 18 ao 312, Sunny a partir do 313; `shipModels.tsx`). Parado, troca no lugar com um
 "pop"; numa viagem, troca ao passar por Syrup Village ou Water 7. Nas viagens longas a câmera se
 afasta no caminho e volta a aproximar no destino. O protótipo `?navios` (e `?shipt`) saiu; o
-`Ship.tsx` agora só tem o navio do bando.
+`Ship.tsx` agora só tem o navio do bando. Na revisão: o giro de saída ficou mais rápido (180° em
+~1,9 s) e entrou um medalhão de madeira no canto inferior direito (`ShipStatus.tsx`) com âncora
+(parado) ou bússola (viajando); durante a viagem a câmera fica travada no navio, e clicar na âncora
+leva a câmera de volta ao navio (centraliza, zoom inicial, norte para cima), ficando inativa quando
+ela já está lá.
 
 | Área | Estado |
 | --- | --- |
@@ -106,7 +110,8 @@ afasta no caminho e volta a aproximar no destino. O protótipo `?navios` (e `?sh
 | Qualidade móvel | Detecção automática; não testado num tablet real |
 | Pipeline de geografia | Pronto (`scripts/`). Em 26/11 entraram as ilhas de neve (Drum, Balloon Terminal, Baltigo), as do Calm Belt (Amazon Lily, Impel Down) e Loguetown (caía fora da área do East Blue); ilhas cortadas por rótulos foram consertadas (`FIX_LABELS` em `merge-regions.mjs`: Dressrosa, Alabasta, Wano, Water 7, Loguetown, Conomi...) |
 | Rota do navio | Pronta: 52 paradas na ordem dos episódios, com as travessias da Reverse Mountain e da Ilha dos Tritões (`scripts/build-route.mjs` → `src/data/route.json`; conferência com `node scripts/route-overlay.mjs`) |
-| Navio | Em revisão: bote, Going Merry e Thousand Sunny feitos em código no estilo do terreno (`Ship.tsx`, `merryModel.ts`, `sunnyModel.ts`, peças e Jolly Roger em `shipParts.ts`); viaja até o episódio escolhido, troca de navio conforme o episódio (`shipModels.tsx`), acelera/freia, balança nas ondas, encolhe navegando, deixa rastro (`Trail.ts`); a câmera se afasta nas viagens longas |
+| Navio | Pronto: bote, Going Merry e Thousand Sunny feitos em código no estilo do terreno (`Ship.tsx`, `merryModel.ts`, `sunnyModel.ts`, peças e Jolly Roger em `shipParts.ts`); viaja até o episódio escolhido, troca de navio conforme o episódio (`shipModels.tsx`), acelera/freia, balança nas ondas, encolhe navegando, deixa rastro (`Trail.ts`); a câmera se afasta nas viagens longas e fica travada no navio durante a viagem |
+| Ícone do navio | Pronto: âncora/bússola no canto inferior direito; a âncora leva a câmera ao navio (`ShipStatus.tsx`; tema de madeira comum em `ui/wood.css`) |
 | Barra de episódios | Pronta: placa de madeira pendurada (`EpisodeBar.tsx`) + estado do episódio (`state/episode.ts`) |
 | Dados de episódios | Pronto e aprovado: `src/data/episodes.json` (`scripts/fetch-episodes.mjs`, `scripts/build-episodes.mjs`, locais em `geo/episode-places.json`) |
 | Nomes no mapa | Os 42 locais com nome no 3D, no estilo dos rótulos dos prints (Alegreya negrito via @fontsource, letra escura com contorno branco, X de mapa do tesouro, anticolisão; `PlaceLabels.tsx`; tecla N liga/desliga, salvo em `mapSettings.ts`); posições em `geo/places.json`, conferência com `node scripts/places-overlay.mjs` |
@@ -153,9 +158,9 @@ Plano fechado em 26/11/2026 (detalhes em DECISOES.md, "Dados de episódios e loc
    com as duas travessias.
 4. ~~**Interface**~~ — feito (26/11/2026): placa `< Arco · Ep >`, lista de episódios, progresso
    salvo, navio viajando até o episódio escolhido. Exportar/importar foi descartado.
-5. **Navio navegando (em revisão):** troca bote → Merry → Sunny conforme o episódio (sem o
-   protótipo `?navios`); câmera se afasta em viagens longas.
-6. **Zoom da ilha** com animação e painel, começando por 1 ilha do East Blue.
+5. ~~**Navio navegando**~~ — feito (26/11/2026): troca bote → Merry → Sunny conforme o episódio,
+   câmera se afasta em viagens longas e fica travada no navio, ícone de âncora/bússola.
+6. **Zoom da ilha (próximo)** com animação e painel, começando por 1 ilha do East Blue.
 7. Depois: sinopses e dropdown de idioma (tradução PT), modelos das ilhas de filler e dos locais
    especiais, nomes das outras ilhas dos prints (opção B: ~200 nomes, com anticolisão por zoom),
    hospedagem e teste em tablet.
