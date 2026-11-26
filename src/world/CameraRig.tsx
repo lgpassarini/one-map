@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import type { MapControls as MapControlsImpl } from 'three-stdlib'
 import { episodeStore } from '../state/episode'
 import { cameraState } from './cameraState'
+import { shipState } from './shipState'
 import { WORLD_H, WORLD_W } from './coords'
 
 const MIN_DIST = 40 // aproximação máxima: enquadramento tipo "Reverse Mountain inteira, de lado"
@@ -39,6 +40,11 @@ function publishCameraState(camera: THREE.PerspectiveCamera, target: THREE.Vecto
 const MARGIN_X = 22
 const MARGIN_Z = 18
 
+const FLY_TIME = 1.1 // s da animação "ir até o navio"
+const HOME_DIST = 50 // zoom para onde a âncora leva (o mesmo de quando a página abre)
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(b - a), Math.cos(b - a))
+
 /**
  * Câmera de mapa: arrastar move, roda/pinça dá zoom (e a inclinação acompanha), botão direito gira.
  * O alvo fica preso dentro do mapa; quanto mais afastado, mais perto do centro ele precisa ficar.
@@ -48,6 +54,8 @@ export function CameraRig({ start, distance = 50 }: { start: [number, number]; d
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const scene = useThree((s) => s.scene)
   const size = useThree((s) => s.size)
+  // "Ir até o navio" em andamento: de onde a câmera saiu e para onde vai.
+  const fly = useRef<{ k: number; x: number; z: number; d: number; az: number; tx: number; tz: number } | null>(null)
 
   useEffect(() => {
     const c = controls.current
@@ -58,11 +66,33 @@ export function CameraRig({ start, distance = 50 }: { start: [number, number]; d
     c.update()
   }, [camera, start, distance])
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const c = controls.current
     if (!c) return
     // Viajando, a câmera fica travada no navio (o Ship.tsx a conduz): arrastar, zoom e giro param.
-    c.enabled = !episodeStore.get().sailing
+    c.enabled = !episodeStore.get().sailing && !fly.current
+
+    // Âncora: vai até o navio, centraliza, volta ao zoom inicial e desfaz o giro (rumo norte).
+    if (cameraState.flyToShip) {
+      cameraState.flyToShip = false
+      const off = camera.position.clone().sub(c.target)
+      fly.current = { k: 0, x: c.target.x, z: c.target.z, d: off.length(), az: Math.atan2(off.x, off.z), tx: shipState.pos[0], tz: shipState.pos[1] }
+    }
+    const f = fly.current
+    if (f) {
+      f.k = Math.min(1, f.k + Math.min(dt, 0.1) / FLY_TIME)
+      const e = easeInOut(f.k)
+      const d = THREE.MathUtils.lerp(f.d, HOME_DIST, e)
+      const az = f.az + angleDiff(f.az, 0) * e
+      const polar = polarFor(d)
+      c.target.set(THREE.MathUtils.lerp(f.x, f.tx, e), 0, THREE.MathUtils.lerp(f.z, f.tz, e))
+      camera.position.set(
+        c.target.x + d * Math.sin(polar) * Math.sin(az),
+        d * Math.cos(polar),
+        c.target.z + d * Math.sin(polar) * Math.cos(az),
+      )
+      if (f.k >= 1) fly.current = null
+    }
 
     const t = c.target
     const dist = camera.position.distanceTo(t)

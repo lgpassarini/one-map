@@ -7,4 +7,6 @@ export const cameraState = {
   half: [0, 0] as [number, number],
   /** performance.now() da última vez que a câmera se mexeu. */
   lastMove: 0,
+  /** Pedido da interface (âncora): levar a câmera até o navio, no zoom e rumo iniciais. */
+  flyToShip: false,
 }

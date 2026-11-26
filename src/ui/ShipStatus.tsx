@@ -1,22 +1,29 @@
 import { useEpisode } from '../state/episode'
+import { cameraState } from '../world/cameraState'
 import './ShipStatus.css'
 
 // Medalhão de madeira no canto inferior direito que mostra o estado do navio: âncora quando está
-// parado, bússola (com a agulha balançando) quando está viajando. Durante a viagem a câmera fica
-// travada no navio (CameraRig).
+// parado, bússola (com a agulha balançando) quando está viajando. Clicar na âncora leva a câmera
+// de volta até o navio (centraliza, volta ao zoom inicial e desfaz o giro). Durante a viagem a
+// câmera fica travada no navio (CameraRig).
 
 export function ShipStatus() {
   const { sailing } = useEpisode()
   return (
-    <div className={`ship-status${sailing ? ' ship-status--sailing' : ''}`} title={sailing ? 'Navegando' : 'Ancorado'} role="status">
+    <button
+      className={`ship-status${sailing ? ' ship-status--sailing' : ''}`}
+      title={sailing ? 'Navegando' : 'Ir até o navio'}
+      disabled={sailing}
+      onClick={() => (cameraState.flyToShip = true)}
+    >
       <span className="ship-status__icon ship-status__anchor" aria-hidden={sailing}>
         <Anchor />
       </span>
       <span className="ship-status__icon ship-status__compass" aria-hidden={!sailing}>
         <Compass />
       </span>
-      <span className="ship-status__label">{sailing ? 'Navegando' : 'Ancorado'}</span>
-    </div>
+      <span className="ship-status__label">{sailing ? 'Navegando' : 'Ir até o navio'}</span>
+    </button>
   )
 }
 
