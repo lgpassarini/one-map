@@ -112,12 +112,14 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
   mastros) com contorno "casco invertido" e velas/bandeiras com o Jolly Roger desenhado em canvas.
 - **Porto:** a 2,6 unidades da costa, para o navio parado (e girando) não encostar na praia.
 - **Chegada sem giro brusco (feedback do usuário, 2026-11-26):** o navio parado ficou maior
-  (2,2 → 2,7 unidades). Navegando, a proa segue a rota de perto (um teto de velocidade de giro
-  navegando foi testado e descartado: a proa atrasava e o barco andava de lado). Parado, vira
-  devagar (até 0,6 rad/s, amortecido) para a próxima saída, uma vez, e só parte quando está
-  apontado para ela (a pausa se estende se precisar). A entrada e a saída do porto são em linha
-  reta nas últimas ~6 unidades, quando a reta não encosta na costa, para não haver curva fechada
-  bem na chegada.
+  (2,2 → 2,7 unidades). Chegou, parou: a direção fica como chegou, sem giro. Para sair, vira no
+  lugar uma vez, devagar (até 0,8 rad/s, amortecido), até apontar para o ponto da rota 2 unidades
+  à frente, e só então anda (a pausa se estende). Navegando, a proa aponta para o ponto 1,5
+  unidade à frente no caminho (corda, não a tangente da curva), então as curvinhas do traçado não
+  viram giros. Testado e descartado: teto de velocidade de giro navegando (a proa atrasava e o
+  barco andava de lado) e virar para a próxima saída logo ao chegar (girava na chegada e de novo
+  na saída). A entrada e a saída do porto são em linha reta nas últimas ~6 unidades, quando a
+  reta não encosta na costa.
 - **Sem voltinhas em torno da mesma ilha:** paradas seguidas com portos a menos de 5 unidades
   dividem o porto (Reverse Mountain → Whisky Peak, Ilha dos Tritões → Maubeugemour). Um ponto de
   mar a menos de 8 unidades do porto anterior fica no porto (os de Whisky Peak, Alabasta e Punk
