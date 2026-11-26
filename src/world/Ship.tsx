@@ -28,7 +28,10 @@ import { createTrail } from './Trail'
 // toon shading e contorno fino no alto de cada camada.
 
 const SHIP_LEN = 2.7 // comprimento do navio parado (peça de tabuleiro)
-const TURN_STOPPED = 0.8 // rad/s: giro mais rápido do navio virando no porto para sair
+const TURN_STOPPED = 1.9 // rad/s: giro mais rápido do navio virando no porto para sair (180° em ~1,9 s)
+const TURN_GAIN = 3.5 // velocidade de giro por radiano que falta (freia perto de apontar)
+const TURN_ACCEL = 4 // amortecimento da velocidade de giro (começa e para sem tranco)
+const TURN_LEAVE = 0.15 // rad (~9°): parte quando falta isto; o resto do giro acontece já andando
 const LOOK = 1.5 // navegando, a proa aponta para o ponto da rota a esta distância à frente
 const EXIT_LOOK = 2 // na saída, vira para o ponto da rota a esta distância do porto
 const SAIL_SCALE = 0.45 // navegando, encolhe
@@ -390,10 +393,10 @@ export function Ship() {
     const turningOut = v !== null && s.t > 0 && !s.left && s.init
     if (turningOut) {
       const exit = headingTo(v.trips, 0, EXIT_LOOK, tmp.p, tmp.ahead)
-      if (exit !== null && Math.abs(angleDiff(s.heading, exit)) > 0.03) {
+      if (exit !== null && Math.abs(angleDiff(s.heading, exit)) > TURN_LEAVE) {
         s.t = 0
-        const rate = THREE.MathUtils.clamp(angleDiff(s.heading, exit) * 1.5, -TURN_STOPPED, TURN_STOPPED)
-        s.angVel = damp(s.angVel, rate, 2.5, dt)
+        const rate = THREE.MathUtils.clamp(angleDiff(s.heading, exit) * TURN_GAIN, -TURN_STOPPED, TURN_STOPPED)
+        s.angVel = damp(s.angVel, rate, TURN_ACCEL, dt)
       } else s.left = true
     }
     const sailing = v !== null && s.t > 0

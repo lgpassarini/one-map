@@ -115,8 +115,10 @@ Decisões tomadas numa sessão de perguntas em 2026-11-25.
 - **Porto:** a 2,6 unidades da costa, para o navio parado (e girando) não encostar na praia.
 - **Chegada sem giro brusco (feedback do usuário, 2026-11-26):** o navio parado ficou maior
   (2,2 → 2,7 unidades). Chegou, parou: a direção fica como chegou, sem giro. Para sair, vira no
-  lugar uma vez, devagar (até 0,8 rad/s, amortecido), até apontar para o ponto da rota 2 unidades
-  à frente, e só então anda (a pausa se estende). Navegando, a proa aponta para o ponto 1,5
+  lugar uma vez, amortecido, até apontar para o ponto da rota 2 unidades à frente, e só então
+  anda (a pausa se estende). No passo 5 o giro ficou mais rápido para a placa não ficar travada
+  tanto tempo: até 1,9 rad/s (180° em ~1,9 s, antes 4,5 s), e parte quando faltam ~9°, terminando
+  o giro já andando. Navegando, a proa aponta para o ponto 1,5
   unidade à frente no caminho (corda, não a tangente da curva), então as curvinhas do traçado não
   viram giros. Testado e descartado: teto de velocidade de giro navegando (a proa atrasava e o
   barco andava de lado) e virar para a próxima saída logo ao chegar (girava na chegada e de novo
