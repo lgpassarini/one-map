@@ -8,7 +8,7 @@
 // costa do que o caminho original), as quinas arredondadas e tudo reamostrado em passos iguais.
 //
 // Entrada: geo/places.json, geo/geography.json, reference/regions/align.json, coast.png, islands.json
-// Saída:   src/data/route.json
+// Saída:   src/data/route.json e src/data/places.json (todos os locais com posição, para os nomes)
 //
 // Uso: node scripts/build-route.mjs   (depois de npm run geo:terrain)
 import sharp from 'sharp'
@@ -225,4 +225,38 @@ for (let k = 0; k < route.length - 1; k++) {
   console.log(`${route[k]} → ${route[k + 1]}: ${len.toFixed(1)} unidades, ${points.length} pontos`)
 }
 await writeFile('src/data/route.json', JSON.stringify(out) + '\n')
+
+// Todos os locais com posição (não só os da rota), para os nomes no mapa (PlaceLabels).
+// O encaixe dos prints da Grand Line erra alguns px: um local canônico que cai no mar perto de
+// uma ilha (até SNAP px do mapa) vai para a borda dessa ilha, para o pino ficar em cima dela
+// e acompanhar o crescimento da ilha. Fillers não grudam (alguns são pontos no mar de propósito).
+const SNAP = 18
+const NO_SNAP = new Set(['skypiea']) // marcador no céu, acima de Jaya
+function snapToIsland([px, py]) {
+  let best = null, bestD = SNAP
+  for (const isl of islandData.islands) {
+    const [x0, y0, x1, y1] = isl.box
+    const dx = Math.max(x0 - px, 0, px - x1), dy = Math.max(y0 - py, 0, py - y1)
+    const d = Math.hypot(dx, dy)
+    if (d === 0) return [px, py]
+    if (d < bestD) { bestD = d; best = [Math.min(Math.max(px, x0), x1), Math.min(Math.max(py, y0), y1)] }
+  }
+  return best ?? [px, py]
+}
+const all = {}
+for (const [id, p] of Object.entries(places)) {
+  if (!p.px) continue
+  const t = T[p.region]
+  if (!t) throw new Error(`região desconhecida: ${p.region}`)
+  let m = [t.sx * p.px[0] + t.tx, t.sy * p.px[1] + t.ty]
+  if (p.kind !== 'filler' && !NO_SNAP.has(id)) {
+    const s = snapToIsland(m)
+    if (s[0] !== m[0] || s[1] !== m[1]) console.log(`  ${id}: grudado na ilha (${Math.hypot(s[0] - m[0], s[1] - m[1]).toFixed(1)} px)`)
+    m = s
+  }
+  const town = mapPxToWorld(...m)
+  all[id] = { name: p.name, ...(p.kind && { kind: p.kind }), town: town.map((v) => +v.toFixed(2)) }
+}
+await writeFile('src/data/places.json', JSON.stringify(all) + '\n')
+console.log(`src/data/places.json: ${Object.keys(all).length} locais`)
 console.log(`MAX_CLEAR da textura: ${MAX_CLEAR.toFixed(2)} unidades`)

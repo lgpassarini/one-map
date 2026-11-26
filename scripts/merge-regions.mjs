@@ -23,19 +23,52 @@ const geo = JSON.parse(await readFile('geo/geography.extracted.json', 'utf8'))
 const W = geo.width, H = geo.height
 const align = JSON.parse(await readFile('reference/regions/align.json', 'utf8'))
 
-const GL = [Math.round(geo.bands.grandLine[0] * H), Math.round(geo.bands.grandLine[1] * H)] // linhas da Grand Line
 const CALM_N = Math.round(geo.bands.calmBeltNorth[0] * H)
 const CALM_S = Math.round(geo.bands.calmBeltSouth[1] * H)
 
 // Transformação print → mapa (T) e área de mar (box) de cada região.
 const T = printTransforms(geo, align)
+// Faixa que os prints da Grand Line cobrem (eles mostram parte dos Calm Belts). Os Blues vão até
+// ela, e não só até o Calm Belt: o encaixe do East Blue põe Loguetown (y≈811) logo depois do
+// começo do Calm Belt (801), e ela ficava de fora.
+const glCover = async (name) => {
+  const { height } = await sharp(`reference/regions/${name}.png`).metadata()
+  return [Math.ceil(T[name].ty), Math.floor(T[name].sy * (height - 1) + T[name].ty)]
+}
+const [nwTop, nwBottom] = await glCover('new-world') // lado oeste (x < 2048)
+const [pdTop, pdBottom] = await glCover('paradise') // lado leste
+// Ilhas que os rótulos do print cortam em fatias (caixas [x0, y0, x1, y1] no print): ali a letra
+// vira terra (ver printChannels). Conferidas uma a uma; fora delas a regra juntaria ilhas
+// separadas por um rótulo no estreito (Ilha Rubeck, Reino de Lvneel, Cheese em Totto Land).
+const FIX_LABELS = {
+  'north-blue': [[690, 540, 750, 590]], // Notice Town
+  'east-blue': [
+    [290, 350, 470, 455], // Ilhas Conomi (Arlong Park)
+    [900, 355, 1000, 420], // Ilha Organ (Orange Town)
+    [1465, 540, 1570, 620], // Vila Shimotsuki
+    [20, 735, 100, 800], // Loguetown
+  ],
+  'south-blue': [[1340, 310, 1430, 410]], // Castle Town
+  paradise: [
+    [355, 70, 450, 140], // Alabasta
+    [665, 155, 720, 200], // Upper Yard
+    [1255, 90, 1300, 150], // Water 7
+  ],
+  'new-world': [
+    [300, 265, 385, 345], // Dressrosa
+    [1480, 150, 1600, 230], // Wano
+  ],
+}
+
 const REGIONS = {
-  'north-blue': { T: T['north-blue'], box: [0, 0, 2048, CALM_N] },
-  'east-blue': { T: T['east-blue'], box: [2048, 0, W, CALM_N] },
-  'west-blue': { T: T['west-blue'], box: [0, CALM_S, 2048, H] },
-  'south-blue': { T: T['south-blue'], box: [2048, CALM_S, W, H] },
-  paradise: { T: T.paradise, box: [2048, GL[0], W, GL[1]] },
-  'new-world': { T: T['new-world'], box: [0, GL[0], 2048, GL[1]] },
+  'north-blue': { T: T['north-blue'], box: [0, 0, 2048, Math.max(CALM_N, nwTop)] },
+  'east-blue': { T: T['east-blue'], box: [2048, 0, W, Math.max(CALM_N, pdTop)] },
+  'west-blue': { T: T['west-blue'], box: [0, Math.min(CALM_S, nwBottom + 1), 2048, H] },
+  'south-blue': { T: T['south-blue'], box: [2048, Math.min(CALM_S, pdBottom + 1), W, H] },
+  // Grand Line + Calm Belts (Amazon Lily e Impel Down ficam no Calm Belt), cortado abaixo ao
+  // que o print cobre
+  paradise: { T: T.paradise, box: [2048, CALM_N, W, CALM_S], keepSmall: [[838, 128, 880, 153]] }, // anel de Long Ring
+  'new-world': { T: T['new-world'], box: [0, CALM_N, 2048, CALM_S] },
 }
 
 const land = await rasterPolys(geo.land, W, H)
@@ -51,9 +84,27 @@ const refColor = await sharp(geo.source).resize(W, H).removeAlpha().raw().toBuff
 const colors = Buffer.from(refColor)
 const out = land.slice()
 
-for (const [name, { T, box }] of Object.entries(REGIONS)) {
-  const pr = await printChannels(`reference/regions/${name}.png`)
+for (const [name, { T, box: area, keepSmall }] of Object.entries(REGIONS)) {
+  const pr = await printChannels(`reference/regions/${name}.png`, { keepSmall, fixLabels: FIX_LABELS[name] })
+  // a área não passa do que o print cobre (nas faixas da Grand Line ele não vai até a borda dos
+  // Calm Belts): fora dele, as nossas ilhas ficam
+  const box = [area[0], Math.max(area[1], Math.ceil(T.ty)), area[2], Math.min(area[3], Math.floor(T.sy * (pr.h - 1) + T.ty))]
   const { data: prRGB } = await sharp(`reference/regions/${name}.png`).removeAlpha().raw().toBuffer({ resolveWithObject: true })
+  // Terra que veio de rótulo (printChannels.labelLand) tem a cor da letra (preta ou branca, que
+  // virariam rocha e neve): pega a cor da terra de verdade mais próxima.
+  for (let i = 0; i < pr.labelLand.length; i++) {
+    if (!pr.labelLand[i]) continue
+    const x = i % pr.w, y = (i / pr.w) | 0
+    search: for (let rad = 1; rad <= 24; rad++)
+      for (let dy = -rad; dy <= rad; dy++)
+        for (let dx = -rad; dx <= rad; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== rad) continue
+          const nx = x + dx, ny = y + dy, j = ny * pr.w + nx
+          if (nx < 0 || ny < 0 || nx >= pr.w || ny >= pr.h || !pr.land[j] || pr.labelLand[j]) continue
+          prRGB[i * 3] = prRGB[j * 3]; prRGB[i * 3 + 1] = prRGB[j * 3 + 1]; prRGB[i * 3 + 2] = prRGB[j * 3 + 2]
+          break search
+        }
+  }
   // Rótulos sobre as ilhas deixam buracos: preenche os pequenos.
   const prLand = fillHoles(pr.land, pr.w, pr.h, 4000)
 

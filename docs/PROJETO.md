@@ -69,16 +69,24 @@ cada episódio vem de `geo/episode-places.json` (feito à mão, 51 trechos, 42 l
 filler); o navio começa em Foosha (`routeOrigin`). O build valida a estrutura e falha se houver
 referência inválida. Os dados ainda não são usados pela aplicação.
 
+**Locais no mapa prontos (passo 2, 26/11/2026):** os 42 locais têm posição em `geo/places.json`
+(pixel no print da região; os fora dos prints, em posição aproximada) e aparecem no mapa com nome
+e um X (`PlaceLabels.tsx`). Na revisão, o terreno ganhou as ilhas que faltavam (Drum, Amazon
+Lily, Impel Down, Long Ring, Loguetown) e as ilhas cortadas pelos rótulos dos prints foram
+consertadas; todos os locais caem em terra, menos os que ficam no mar de propósito (Baratie,
+fillers no mar, Skypiea, o meio do anel de Long Ring).
+
 | Área | Estado |
 | --- | --- |
 | Mapa 3D | Pronto |
 | Câmera | Pronta |
 | Minimapa | Pronto |
 | Qualidade móvel | Detecção automática; não testado num tablet real |
-| Pipeline de geografia | Pronto (`scripts/`) |
+| Pipeline de geografia | Pronto (`scripts/`). Em 26/11 entraram as ilhas de neve (Drum, Balloon Terminal, Baltigo), as do Calm Belt (Amazon Lily, Impel Down) e Loguetown (caía fora da área do East Blue); ilhas cortadas por rótulos foram consertadas (`FIX_LABELS` em `merge-regions.mjs`: Dressrosa, Alabasta, Wano, Water 7, Loguetown, Conomi...) |
 | Rota do navio | Protótipo: 3 locais do East Blue (`geo/places.json` → `scripts/build-route.mjs`) |
 | Navio | Modelos prontos: bote, Going Merry e Thousand Sunny feitos em código no estilo do terreno (`Ship.tsx`, `merryModel.ts`, `sunnyModel.ts`, peças e Jolly Roger em `shipParts.ts`); acelera/freia, balança nas ondas, encolhe navegando, deixa rastro (`Trail.ts`). **Fora do mapa** (só com `?navios`) até a troca por episódio |
 | Dados de episódios | Pronto e aprovado: `src/data/episodes.json` (`scripts/fetch-episodes.mjs`, `scripts/build-episodes.mjs`, locais em `geo/episode-places.json`) |
+| Nomes no mapa | Os 42 locais com nome no 3D, no estilo dos rótulos dos prints (Alegreya negrito via @fontsource, letra escura com contorno branco, X de mapa do tesouro, anticolisão; `PlaceLabels.tsx`; tecla N liga/desliga, salvo em `mapSettings.ts`); posições em `geo/places.json`, conferência com `node scripts/places-overlay.mjs` |
 | Barra de episódios / lista | Não começado |
 | Zoom detalhado de ilha | Não começado |
 | Idiomas | Não começado |
@@ -94,8 +102,17 @@ referência inválida. Os dados ainda não são usados pela aplicação.
 - **Encaixe das faixas da Grand Line** medido a olho; erro possível de alguns % na horizontal.
 - **Margens vazias** perto da Red Line onde o mapa dos prints é mais estreito.
 - **Risquinhos brancos** nas pontas dos canais da Reverse Mountain.
-- **Malha de 5,9 MB** (era 5,5; as ilhas que cresceram ganharam platôs); não testada em tablet.
+- **Malha de 6,0 MB** (era 5,5; as ilhas que cresceram ganharam platôs, e entraram as de neve e as
+  do Calm Belt); não testada em tablet.
+- **Ilhotas pequenas dos prints** são descartadas na extração (limpeza de resíduo dos rótulos),
+  exceto onde `merge-regions.mjs` lista uma área `keepSmall` (hoje: o anel de Long Ring). Ficam
+  de fora, por exemplo, a Ilha Karakuri (branca e minúscula) e ilhotas em volta das ilhas grandes.
+- **Rótulos que cortam ilhas** só são consertados nas ilhas listadas em `FIX_LABELS`; uma regra
+  geral juntaria ilhas separadas por um rótulo no estreito (Ilha Rubeck, Reino de Lvneel).
 - Screenshots headless mostram faixa escura na borda (artefato do Edge headless).
+- **Locais fora dos prints** ficam em posição aproximada: Reverse Mountain (pelo xads181), as 12
+  ilhas de filler (em ilhas sem nome ou no mar entre as ilhas da viagem) e Skypiea (na nuvem do
+  print, acima de Jaya).
 
 ## Próximos passos
 
@@ -103,19 +120,19 @@ Plano fechado em 26/11/2026 (detalhes em DECISOES.md, "Dados de episódios e loc
 2–5 avançam por saga, começando pelo East Blue.
 
 1. ~~**Lista de episódios e locais**~~ — feito (26/11/2026).
-2. **Mapa ilha → arco → episódios:** pôr no mapa os 42 locais de `geo/episode-places.json`
-   (Claude propõe a posição pelos prints e pelo xads181 e gera uma imagem com os nomes; o usuário
-   confere) em `geo/places.json`. As 12 ilhas de filler e Skypiea, Ilha dos Tritões, Thriller Bark
-   e Zou viram pontos marcadores; o "mar" (20 episódios) é um ponto entre o local anterior e o
-   próximo.
-3. **Rota** gerada a partir dessa lista (`geo/places.json` → `scripts/build-route.mjs`),
-   incluindo depois as travessias da Reverse Mountain e da Ilha dos Tritões.
+2. ~~**Mapa ilha → arco → episódios**~~ — feito (26/11/2026): os 42 locais posicionados, com
+   nomes no mapa; feito de uma vez para todas as sagas.
+3. **Rota (próximo):** gerar a rota pela ordem dos episódios (48 paradas, de Foosha a Elbaf) em
+   vez dos 3 locais do protótipo (`geo/places.json` → `scripts/build-route.mjs`), começando pelo
+   East Blue. O "mar" (20 episódios) é um ponto entre o local anterior e o próximo. Depois, as
+   travessias da Reverse Mountain e da Ilha dos Tritões (a rota cruza a borda do mapa).
 4. **Interface:** barra `< Arco · Ep >` e lista de episódios, progresso, exportar/importar.
 5. **Navio navegando:** troca bote → Merry → Sunny conforme o episódio (tirar o `?navios` e o
    protótipo de voltas do `World.tsx`); zoom da câmera em viagens longas.
 6. **Zoom da ilha** com animação e painel, começando por 1 ilha do East Blue.
 7. Depois: sinopses e dropdown de idioma (tradução PT), modelos das ilhas de filler e dos locais
-   especiais, hospedagem e teste em tablet.
+   especiais, nomes das outras ilhas dos prints (opção B: ~200 nomes, com anticolisão por zoom),
+   hospedagem e teste em tablet.
 
 Em aberto com o usuário: prints da Grand Line mais aproximados (3–4 por faixa).
 

@@ -1,0 +1,79 @@
+@import '@fontsource/alegreya/latin-800.css';
+
+/* Camada dos nomes, por cima do canvas e por baixo do minimapa; não pega cliques (a câmera
+   continua respondendo ao arrastar). */
+.place-labels {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Nome de um local, no estilo dos rótulos dos prints de referência: Alegreya em negrito, letra
+   quase preta com contorno branco, e um X de mapa do tesouro na cidade. O
+   PlaceLabelsProjector põe o X no ponto projetado; o nome fica acima dele. */
+.place-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.place-label__name {
+  font-family: 'Alegreya', Georgia, serif;
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1.15;
+  color: #140d08;
+  -webkit-text-stroke: 5px #fffaf0;
+  paint-order: stroke fill;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.place-label__x {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+
+.place-label__x path:first-child {
+  stroke: #fffaf0;
+  stroke-width: 5.5;
+}
+
+.place-label__x path:last-child {
+  stroke: #9b1c1c;
+  stroke-width: 2.8;
+}
+
+/* Locais de filler: menores, tinta marrom e X laranja, para não competir com os canônicos. */
+.place-label--filler .place-label__name {
+  font-size: 16px;
+  color: #4a2f1c;
+  -webkit-text-stroke-width: 4px;
+}
+
+.place-label--filler .place-label__x {
+  width: 12px;
+  height: 12px;
+}
+
+.place-label--filler .place-label__x path:last-child {
+  stroke: #b5651d;
+  stroke-width: 2.4;
+}
+
+@media (max-width: 600px) {
+  .place-label__name {
+    font-size: 16px;
+  }
+  .place-label--filler .place-label__name {
+    font-size: 13px;
+  }
+}

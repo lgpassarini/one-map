@@ -16,6 +16,7 @@
     "eps:build": "node scripts/build-episodes.mjs"
   },
   "dependencies": {
+    "@fontsource/alegreya": "^5.3.0",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
     "react": "^19.3.1",

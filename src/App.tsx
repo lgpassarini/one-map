@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { useState } from 'react'
 import { detectQuality, QUALITY_SETTINGS } from './quality'
 import { Minimap } from './ui/Minimap'
+import { PlaceLabels } from './world/PlaceLabels'
 import { World } from './world/World'
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
       <Canvas dpr={QUALITY_SETTINGS[quality].dpr} camera={{ fov: 45, near: 0.1, far: 400 }}>
         <World quality={quality} />
       </Canvas>
+      <PlaceLabels />
       <Minimap />
     </>
   )

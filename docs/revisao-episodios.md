@@ -12,7 +12,7 @@ Gerado por `scripts/build-episodes.mjs` em 2026-11-26. Não edite: corrija `geo/
 | 5–8 | Orange Town | Orange Town |
 | 9–18 | Vila Syrup | Syrup Village |
 | 19–30 | Baratie | Baratie |
-| 31–44 | Vila Cocoyasi (Arlong Park) | Arlong Park |
+| 31–44 | Arlong Park | Arlong Park |
 | 45–53 | Loguetown | Loguetown, Buggy's Crew: After the Battle! |
 | 54–61 | Warship Island | Warship Island |
 | 62–63 | Reverse Mountain | Reverse Mountain |

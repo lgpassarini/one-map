@@ -6,6 +6,7 @@ import { Canals } from './Canals'
 import { mapPxToWorld } from './coords'
 import { EdgeFog } from './EdgeFog'
 import { Ocean } from './Ocean'
+import { PlaceLabelsProjector } from './PlaceLabels'
 import { type Course, courseStart, Ship } from './Ship'
 import type { ShipModelId } from './shipModels'
 import { Terrain } from './Terrain'
@@ -60,6 +61,8 @@ export function World({ quality }: { quality: Quality }) {
       ))}
       <EdgeFog />
       <CameraRig start={START.at} distance={START.dist} />
+      {/* depois da câmera: os nomes usam a posição dela deste frame (antes, ficavam um frame atrás) */}
+      <PlaceLabelsProjector />
     </>
   )
 }
