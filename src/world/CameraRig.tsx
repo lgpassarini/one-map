@@ -56,6 +56,10 @@ export function CameraRig({ start, distance = 50 }: { start: [number, number]; d
   const size = useThree((s) => s.size)
   // "Ir até o navio" em andamento: de onde a câmera saiu e para onde vai.
   const fly = useRef<{ k: number; x: number; z: number; d: number; az: number; tx: number; tz: number } | null>(null)
+  // Onde a câmera parou depois de ir até o navio (perto da borda do mapa o alvo não centraliza de
+  // todo, então "no navio" também vale enquanto a câmera não sai deste ponto).
+  const landed = useRef(false)
+  const home = useRef<THREE.Vector3 | null>(null)
 
   useEffect(() => {
     const c = controls.current
@@ -73,8 +77,10 @@ export function CameraRig({ start, distance = 50 }: { start: [number, number]; d
     c.enabled = !episodeStore.get().sailing && !fly.current
 
     // Âncora: vai até o navio, centraliza, volta ao zoom inicial e desfaz o giro (rumo norte).
-    if (cameraState.flyToShip) {
-      cameraState.flyToShip = false
+    // Pedido ignorado se já está no navio ou indo para lá.
+    const request = cameraState.flyToShip
+    cameraState.flyToShip = false
+    if (request && !cameraState.atShip && !fly.current) {
       const off = camera.position.clone().sub(c.target)
       fly.current = { k: 0, x: c.target.x, z: c.target.z, d: off.length(), az: Math.atan2(off.x, off.z), tx: shipState.pos[0], tz: shipState.pos[1] }
     }
@@ -91,7 +97,10 @@ export function CameraRig({ start, distance = 50 }: { start: [number, number]; d
         d * Math.cos(polar),
         c.target.z + d * Math.sin(polar) * Math.cos(az),
       )
-      if (f.k >= 1) fly.current = null
+      if (f.k >= 1) {
+        fly.current = null
+        landed.current = true
+      }
     }
 
     const t = c.target
@@ -117,6 +126,20 @@ export function CameraRig({ start, distance = 50 }: { start: [number, number]; d
     }
 
     publishCameraState(camera, t, halfW, halfH)
+
+    // Já está no navio? (a âncora fica inativa): indo para lá, parada onde a ida terminou, ou
+    // centralizada no navio no zoom inicial e com o norte para cima.
+    if (landed.current) {
+      landed.current = false
+      home.current = camera.position.clone()
+    }
+    if (home.current && camera.position.distanceToSquared(home.current) > 0.01) home.current = null
+    const az = Math.atan2(camera.position.x - t.x, camera.position.z - t.z)
+    const centered =
+      Math.hypot(t.x - shipState.pos[0], t.z - shipState.pos[1]) < 0.6 &&
+      Math.abs(dist - HOME_DIST) < 1 &&
+      Math.abs(angleDiff(az, 0)) < 0.03
+    cameraState.atShip = fly.current !== null || home.current !== null || centered
 
     // Neblina acompanha o zoom.
     if (scene.fog instanceof THREE.Fog) {

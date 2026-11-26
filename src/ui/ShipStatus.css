@@ -26,10 +26,15 @@
   transition: opacity 0.25s ease;
 }
 
-.ship-status:hover,
+.ship-status:not(:disabled):hover,
 .ship-status:focus-visible,
 .ship-status--sailing {
   opacity: 1;
+}
+
+/* Já no navio: a âncora não faz nada, fica apagada. */
+.ship-status--home {
+  opacity: 0.45;
 }
 
 .ship-status:disabled {

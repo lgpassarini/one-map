@@ -9,4 +9,6 @@ export const cameraState = {
   lastMove: 0,
   /** Pedido da interface (âncora): levar a câmera até o navio, no zoom e rumo iniciais. */
   flyToShip: false,
+  /** A câmera já está no navio (centralizada, zoom inicial, rumo norte) ou indo para lá: a âncora não faz nada. */
+  atShip: false,
 }
