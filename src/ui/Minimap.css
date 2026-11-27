@@ -30,3 +30,10 @@
     transform: scale(0.45);
   }
 }
+
+/* Vista da ilha: sai de cena (a vinheta ocupa a esquerda). */
+.minimap--hidden {
+  opacity: 0 !important;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0s 0.3s;
+}

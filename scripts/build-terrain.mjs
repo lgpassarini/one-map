@@ -408,20 +408,28 @@ const ringArea = (r) => {
   return a / 2
 }
 
-function pushTri(a, b, c, col) {
+// Ilha de cada vértice (rótulo + 1; 0 = Red Line e Reverse Mountain): a cena usa para destacar uma
+// ilha inteira (brilho ao passar o mouse numa ilha com nome).
+const vertexIsland = []
+
+function pushTri(a, b, c, col, island) {
   const ux = b[0] - a[0], uz = b[2] - a[2], vx = c[0] - a[0], vz = c[2] - a[2]
   if (uz * vx - ux * vz < 0) [b, c] = [c, b] // topo virado para cima
   positions.push(...a, ...b, ...c)
   colors.push(...col, ...col, ...col)
+  vertexIsland.push(island, island, island)
 }
 
-/** Extruda um polígono (anéis em px) de y0 até y1, com `xf` levando px → mundo. */
-function extrude(rings, y0, y1, topCol, wallCol, xf, isCoast) {
+/**
+ * Extruda um polígono (anéis em px) de y0 até y1, com `xf` levando px → mundo. `island` é o id
+ * gravado nos vértices (rótulo da ilha + 1, ou 0).
+ */
+function extrude(rings, y0, y1, topCol, wallCol, xf, isCoast, island = 0) {
   const [outer, ...holes] = rings
   const v2 = (r) => r.map(([x, y]) => new THREE.Vector2(x, y))
   const tris = THREE.ShapeUtils.triangulateShape(v2(outer), holes.map(v2))
   const P = [outer, ...holes].flat().map(([x, y]) => xf(x, y))
-  for (const [a, b, c] of tris) pushTri([P[a][0], y1, P[a][1]], [P[b][0], y1, P[b][1]], [P[c][0], y1, P[c][1]], topCol)
+  for (const [a, b, c] of tris) pushTri([P[a][0], y1, P[a][1]], [P[b][0], y1, P[b][1]], [P[c][0], y1, P[c][1]], topCol, island)
   for (const ring of rings) {
     const W = ring.map(([x, y]) => xf(x, y))
     if (isCoast) {
@@ -433,6 +441,7 @@ function extrude(rings, y0, y1, topCol, wallCol, xf, isCoast) {
       const [bx, bz] = W[(i + 1) % W.length]
       positions.push(ax, y0, az, bx, y0, bz, bx, y1, bz, ax, y0, az, bx, y1, bz, ax, y1, az)
       for (let q = 0; q < 6; q++) colors.push(...wallCol)
+      for (let q = 0; q < 6; q++) vertexIsland.push(island)
       lines.push(ax, y1 + 0.006, az, bx, y1 + 0.006, bz)
     }
   }
@@ -479,7 +488,7 @@ const LEVELS = [0.1, 0.32, 0.6, 0.95, 1.35]
       const l = islandOf(rings)
       if (l < 0) continue
       const pal = PAL[islandBiome[l]]
-      extrude(rings, base, top, pal[lv], shade(pal[lv], 0.72), (x, y) => islandToWorld(l, x, y), lv === 0 && 'land')
+      extrude(rings, base, top, pal[lv], shade(pal[lv], 0.72), (x, y) => islandToWorld(l, x, y), lv === 0 && 'land', l + 1)
       count++
     }
   })
@@ -608,7 +617,14 @@ const col = new Uint8Array(colors)
 const lin = new Float32Array(lines)
 const colPadded = new Uint8Array(Math.ceil(col.length / 4) * 4)
 colPadded.set(col)
-await writeFile(`${OUT}/terrain.bin`, Buffer.concat([Buffer.from(pos.buffer), Buffer.from(colPadded.buffer), Buffer.from(lin.buffer)]))
+if (vertexIsland.length !== pos.length / 3) throw new Error('ilha por vértice: contagem não bate com a malha')
+if (nIslands + 1 > 65535) throw new Error('ilhas demais para Uint16')
+const isl = new Uint16Array(Math.ceil(vertexIsland.length / 2) * 2) // múltiplo de 4 bytes
+isl.set(vertexIsland)
+await writeFile(
+  `${OUT}/terrain.bin`,
+  Buffer.concat([Buffer.from(pos.buffer), Buffer.from(colPadded.buffer), Buffer.from(lin.buffer), Buffer.from(isl.buffer)]),
+)
 const [poolX, poolZ] = mapToWorld(summit[0], summit[1])
 const pool = { x: +poolX.toFixed(3), z: +poolZ.toFixed(3), r: +(POOL_R * PX).toFixed(3), y: +POOL_Y.toFixed(3) }
 await writeFile(`${OUT}/canals.json`, JSON.stringify({ canals, pool }))
@@ -633,7 +649,7 @@ const meta = {
   world: { width: WORLD_W, height: WORLD_H },
   coast: { width: CW, height: CH, maxPx: COAST_MAX, pxPerUnit: CW / WORLD_W },
   cutX,
-  mesh: { vertices: pos.length / 3, colorBytes: colPadded.length, lineVertices: lin.length / 3 },
+  mesh: { vertices: pos.length / 3, colorBytes: colPadded.length, lineVertices: lin.length / 3, islandIds: true },
   reverseMountain: { px: summit.map((v) => Math.round(v)), peak: PEAK },
   falls: FALLS,
   bands: geo.bands,

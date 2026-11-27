@@ -20,7 +20,8 @@
   flex-direction: column;
   align-items: center;
   gap: 0;
-  pointer-events: none;
+  pointer-events: auto; /* clicar no nome abre a vista da ilha */
+  cursor: pointer;
   user-select: none;
   white-space: nowrap;
 }
@@ -76,4 +77,8 @@
   .place-label--filler .place-label__name {
     font-size: 13px;
   }
+}
+
+.place-label:hover .place-label__name {
+  color: #7a1d12;
 }

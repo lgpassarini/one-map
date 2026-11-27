@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import route from '../data/route.json'
 import type { Quality } from '../quality'
 import { CameraRig, ISLAND_DIST } from './CameraRig'
 import { Canals } from './Canals'
@@ -6,17 +7,22 @@ import { mapPxToWorld } from './coords'
 import { EdgeFog } from './EdgeFog'
 import { Ocean } from './Ocean'
 import { PlaceLabelsProjector } from './PlaceLabels'
-import { Ship, voyageStart } from './Ship'
+import { episodeStore, stopOf } from '../state/episode'
+import type { IslandSubject } from './cameraState'
+import { Ship, stopFocus } from './Ship'
 import { Terrain } from './Terrain'
 
 // A câmera começa na vista da ilha da parada do episódio salvo. Dev: ?at=px,py&dist=n posiciona a
 // câmera num pixel do mapa (fora da vista da ilha).
-function startView(): { at: [number, number]; dist: number; island: boolean } {
+function startView(): { at: [number, number]; dist: number; island: IslandSubject | null } {
   const p = new URLSearchParams(window.location.search)
   const at = p.get('at')?.split(',').map(Number)
   const dist = Number(p.get('dist')) || 50
-  if (at?.length === 2) return { at: mapPxToWorld(at[0], at[1]), dist, island: false }
-  return { at: voyageStart(), dist: ISLAND_DIST, island: true }
+  if (at?.length === 2) return { at: mapPxToWorld(at[0], at[1]), dist, island: null }
+  const stop = stopOf(episodeStore.get().episode)
+  const place = (route.stops[stop] as { place?: string | null }).place ?? null
+  const focus = stopFocus(stop)
+  return { at: focus, dist: ISLAND_DIST, island: { place, stop, focus } }
 }
 const START = startView()
 

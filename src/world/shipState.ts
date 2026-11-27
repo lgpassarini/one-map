@@ -6,6 +6,4 @@ export const shipState = {
   /** Posição do navio no mundo (x, z). */
   pos: [0, 0] as [number, number],
   sailing: false,
-  /** Ponto da vista da ilha (x, z): entre o porto e a cidade da parada onde o navio está. */
-  focus: [0, 0] as [number, number],
 }

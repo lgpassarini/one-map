@@ -5,7 +5,7 @@ import type { MapControls as MapControlsImpl } from 'three-stdlib'
 import route from '../data/route.json'
 import { episodeStore, stopOf } from '../state/episode'
 import { cameraState } from './cameraState'
-import { MAX_DIST, polarFor } from './CameraRig'
+import { ISLAND_DIST, MAX_DIST, polarFor } from './CameraRig'
 import { shipState } from './shipState'
 import { toonRamp } from './toon'
 import { buildMerry } from './merryModel'
@@ -49,7 +49,7 @@ const CAM_CATCH = 2.5 // na viagem, a câmera alcança o navio (se a vista estav
 const ZOOM_FROM = 50
 const ZOOM_PER = 0.12
 const ZOOM_MAX = 110
-const FOCUS_MAX = 4 // vista da ilha: quanto o enquadramento se desloca do porto para a cidade, no máximo
+const FOCUS_MAX = 1.5 // vista da ilha: quanto o enquadramento se desloca do porto para a cidade, no máximo
 const POP = 0.16 // s de cada metade do "pop" da troca de navio (encolher, crescer)
 
 type Pt = number[] // [x, z] ou [x, z, y]
@@ -221,8 +221,6 @@ export function stopFocus(stop: number): [number, number] {
   return [p.x + dx * k, p.z + dz * k]
 }
 
-/** Onde a câmera começa: a vista da ilha da parada do episódio salvo. */
-export const voyageStart = () => stopFocus(stopOf(episodeStore.get().episode))
 
 /** Posição (0..1) ao longo da viagem: acelera, navega em velocidade constante e freia. */
 function travel(t: number) {
@@ -235,6 +233,9 @@ function travel(t: number) {
 }
 
 /** Afastamento da câmera ao longo da viagem (0..1): sobe no começo, fica, desce perto do fim. */
+// Fim da viagem: a câmera vai chegando ao zoom da vista da ilha a partir desta fração da viagem
+// (junto com a freada), para atracar já nele: a vista da ilha só faz a vinheta aparecer.
+const CAM_LAND = 0.55
 const zoomCurve = (p: number) => THREE.MathUtils.smoothstep(p, 0, 0.22) * (1 - THREE.MathUtils.smoothstep(p, 0.72, 1))
 
 /** Crescer com um pulinho no fim (passa um pouco do tamanho e volta). */
@@ -396,8 +397,9 @@ export function Ship() {
       s.ep = s.toEp
       s.voyage = null
       episodeStore.setSailing(false)
-      shipState.focus = stopFocus(s.at)
-      cameraState.flyToIsland = true // ao chegar, a câmera vai para a vista da ilha
+      // Ao chegar, a câmera vai para a vista da ilha.
+      const place = (route.stops[s.at] as { place?: string | null }).place ?? null
+      cameraState.islandRequest = { place, stop: s.at, focus: stopFocus(s.at), arrival: true }
     }
     const v = s.voyage
     const trips = v?.trips ?? null
@@ -435,7 +437,8 @@ export function Ship() {
 
     // Câmera: parado, acompanha só enquanto o navio está na área vista (se o usuário levou a vista
     // para longe, ela fica onde está). Na viagem, acompanha sempre, vai até o navio se a vista
-    // estava longe e, nas viagens longas, se afasta no caminho e volta no destino.
+    // estava longe, nas viagens longas se afasta no caminho (menos quando a viagem começou na vista
+    // da ilha) e, no fim, chega ao zoom da vista da ilha.
     if (s.init && controls) {
       const dx = tmp.p.x - s.last.x, dz = tmp.p.z - s.last.z
       const [tx, tz] = cameraState.target
@@ -456,8 +459,10 @@ export function Ship() {
         camera.position.x += mx
         camera.position.z += mz
       }
-      if (v && v.zoom > 0) {
-        const d = Math.min(MAX_DIST, s.camBase + v.zoom * zoomCurve(prog))
+      if (v) {
+        const zoom = cameraState.voyageFromIsland ? 0 : v.zoom
+        const base = THREE.MathUtils.lerp(s.camBase, ISLAND_DIST, THREE.MathUtils.smoothstep(prog, CAM_LAND, 1))
+        const d = Math.min(MAX_DIST, base + zoom * zoomCurve(prog))
         const polar = polarFor(d)
         tmp.off.subVectors(camera.position, controls.target)
         const az = Math.atan2(tmp.off.x, tmp.off.z)
@@ -520,7 +525,6 @@ export function Ship() {
     shipState.pos = [tmp.p.x, tmp.p.z]
     shipState.visible = true
     shipState.sailing = sailing
-    if (!v) shipState.focus = stopFocus(s.at)
   }
 
   useFrame((state, rawDt) => {

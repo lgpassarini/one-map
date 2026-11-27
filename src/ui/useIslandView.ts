@@ -2,23 +2,23 @@ import { useEffect, useState } from 'react'
 import { cameraState } from '../world/cameraState'
 
 /**
- * A câmera está na vista da ilha? Acompanha cameraState.islandView (atualizado a cada quadro pela
- * câmera), re-renderizando só quando muda.
+ * A ilha da vista da ilha (ou null na vista normal). Acompanha cameraState.island (atualizado pela
+ * câmera a cada quadro), re-renderizando só quando muda.
  */
 export function useIslandView() {
-  const [inView, setInView] = useState(cameraState.islandView)
+  const [island, setIsland] = useState(cameraState.island)
   useEffect(() => {
     let raf = 0
-    let last = cameraState.islandView
+    let last = cameraState.island
     const loop = () => {
       raf = requestAnimationFrame(loop)
-      if (cameraState.islandView !== last) {
-        last = cameraState.islandView
-        setInView(last)
+      if (cameraState.island !== last) {
+        last = cameraState.island
+        setIsland(last)
       }
     }
     loop()
     return () => cancelAnimationFrame(raf)
   }, [])
-  return inView
+  return island
 }

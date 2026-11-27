@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { cameraState } from '../world/cameraState'
+import { useIslandView } from './useIslandView'
 import { shipState } from '../world/shipState'
 import { WORLD_H, WORLD_W } from '../world/coords'
 import './Minimap.css'
@@ -20,6 +21,7 @@ const IDLE_AFTER = 300 // ms parado até voltar a ficar transparente
 export function Minimap() {
   const canvas = useRef<HTMLCanvasElement>(null)
   const box = useRef<HTMLDivElement>(null)
+  const islandView = useIslandView() // na vista da ilha o minimapa sai (a vinheta ocupa a esquerda)
 
   useEffect(() => {
     const cv = canvas.current!
@@ -74,7 +76,7 @@ export function Minimap() {
   }, [])
 
   return (
-    <div ref={box} className="minimap" style={{ width: WIDTH, height: HEIGHT }}>
+    <div ref={box} className={`minimap${islandView ? ' minimap--hidden' : ''}`} style={{ width: WIDTH, height: HEIGHT }}>
       <canvas ref={canvas} style={{ width: WIDTH, height: HEIGHT }} />
     </div>
   )

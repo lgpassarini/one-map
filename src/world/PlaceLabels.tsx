@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import places from '../data/places.json'
 import { useMapSettings } from '../ui/mapSettings'
 import { cameraState } from './cameraState'
+import { hoverState, viewPlace } from './islandView'
 import './PlaceLabels.css'
 
 // Nomes dos locais da história (src/data/places.json, gerado pelo build-route a partir de
@@ -50,6 +51,9 @@ export function PlaceLabels() {
           }}
           className={`place-label${p.kind ? ` place-label--${p.kind}` : ''}`}
           style={{ display: 'none' }}
+          onClick={() => viewPlace(id)}
+          onPointerEnter={() => (hoverState.label = id)}
+          onPointerLeave={() => hoverState.label === id && (hoverState.label = null)}
         >
           <span className="place-label__name">{p.name.pt}</span>
           <svg className="place-label__x" viewBox="0 0 14 14" aria-hidden="true">
@@ -76,6 +80,8 @@ export function PlaceLabelsProjector() {
     const far = Math.hypot(camera.position.x - tx, camera.position.y, camera.position.z - tz) > FAR
     // O minimapa fica semitransparente parado: um nome atrás dele apareceria através dele.
     const mini = document.querySelector('.minimap')?.getBoundingClientRect()
+    // Na vista da ilha, os nomes atrás do texto da vinheta somem.
+    const card = cameraState.island ? document.querySelector('.island-card__body')?.getBoundingClientRect() : null
     const placed: number[][] = [] // retângulos já na tela, para a anticolisão
     // Histerese: dentro da mesma prioridade, quem já estava na tela vem primeiro, e quem vai
     // aparecer precisa de mais folga. Sem isso, dois nomes no limite piscam alternando.
@@ -96,7 +102,8 @@ export function PlaceLabelsProjector() {
       const sx = Math.round(((v.x + 1) / 2) * size.width), sy = Math.round(((1 - v.y) / 2) * size.height)
       // sob o minimapa (com folga para o nome, que fica acima do X)
       const underMini = mini && sx > mini.left - 60 && sx < mini.right + 60 && sy > mini.top && sy < mini.bottom + 30
-      if (hidden || underMini) {
+      const underCard = card && sx < card.right + 40
+      if (hidden || underMini || underCard) {
         el.style.display = 'none'
         continue
       }

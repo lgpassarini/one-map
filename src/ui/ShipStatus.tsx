@@ -1,24 +1,27 @@
-import { useEpisode } from '../state/episode'
+import { STOPS, stopOf, useEpisode } from '../state/episode'
 import { cameraState } from '../world/cameraState'
 import { useIslandView } from './useIslandView'
 import './ShipStatus.css'
 
 // Medalhão de madeira no canto inferior direito que mostra o estado do navio: âncora quando está
 // parado, bússola (com a agulha balançando) quando está viajando. Clicar na âncora leva a câmera
-// de volta à vista da ilha (navio e ilha de perto, norte para cima). Durante a viagem a
-// câmera fica travada no navio (CameraRig). Já na vista da ilha, a âncora fica inativa (não
-// adianta recentralizar de novo).
+// até o navio na vista normal do mapa (centraliza, zoom inicial, norte para cima), saindo da vista
+// de outra ilha se estiver nela. Na vista da ilha onde o navio está, a âncora fica inativa (o navio
+// já está ali). Durante a viagem a câmera fica travada no navio (CameraRig).
 
 export function ShipStatus() {
-  const { sailing } = useEpisode()
-  const inView = useIslandView()
-  const idle = !sailing && inView
+  const { episode, sailing } = useEpisode()
+  const island = useIslandView()
+  // A vista aberta é a da ilha do navio? (a mesma parada, ou outra parada no mesmo local)
+  const shipStop = stopOf(episode)
+  const shipPlace = (STOPS[shipStop] as { place?: string | null }).place ?? null
+  const atShip = !!island && (island.stop === shipStop || (shipPlace !== null && island.place === shipPlace))
   return (
     <button
-      className={`ship-status${sailing ? ' ship-status--sailing' : ''}${idle ? ' ship-status--home' : ''}`}
-      title={sailing ? 'Navegando' : inView ? 'Ancorado' : 'Ir até o navio'}
-      disabled={sailing || inView}
-      onClick={() => (cameraState.flyToIsland = true)}
+      className={`ship-status${sailing ? ' ship-status--sailing' : ''}${atShip && !sailing ? ' ship-status--home' : ''}`}
+      title={sailing ? 'Navegando' : atShip ? 'Ancorado' : 'Ir até o navio'}
+      disabled={sailing || atShip}
+      onClick={() => (cameraState.flyToShip = true)}
     >
       <span className="ship-status__icon ship-status__anchor" aria-hidden={sailing}>
         <Anchor />
